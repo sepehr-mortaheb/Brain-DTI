@@ -32,7 +32,8 @@ This pipeline consists of the following steps:
 - As the number of sessions is highly variable across subjects, we create session folders as much as the maximum number of available sessions for one subject,
 but they can be empty if that session has not been conducted for the related subject.  
 - The subjects usually have two anatomical T1 scans, one related to the DWI acquisition session and the other to the fMRI acquisition session. The pipeline by default takes
-the T1 image of the fMRI session. But if the fMRI-related T1 scan is unavailable, the pipeline looks for the T1 image of the DWI scan to proceed with the preprocessing.     
+the T1 image of the fMRI session. But if the fMRI-related T1 scan is unavailable, the pipeline looks for the T1 image of the DWI scan to proceed with the preprocessing.
+- The data have been acquired in three different scanners: `ge`, `prisma`, and `vida`. This information has been coded in the file names by `acq-<scanner name>` field. 
 - The pipeline considers that your data is organized in the BIDS format as follows:
   ```
   Data_dir -->
