@@ -1,3 +1,9 @@
+# Brain Alterations after Spaceflight (Brain-DTI)  
+
+<p align="center">
+<img src="img.jpg" alt="" height="200"/>
+</p>
+
 ## Introduction
 With this project, brain MRI scans are acquired in astronauts from the European Space Agency (ESA) and cosmonauts from the Russian Space Agency (Roscosmos). 
 MRI scans are acquired before, shortly after, and 6-7 months after a mission to the International Space Station (ISS) to study spaceflight's immediate and long-term effects 
