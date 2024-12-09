@@ -1,7 +1,7 @@
 # Brain Alterations after Spaceflight (Brain-DTI)  
 
 <p align="center">
-<img src="img.jpg" alt="" height="200"/>
+<img src="img.jpg" alt="" height="400"/>
 </p>
 
 ## Introduction
