@@ -2,8 +2,8 @@
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 # Define your data and preprocessing directories
-data_dir=/data/project/cosmonauts/Data/bids_ros_test
-preproc_dir=/data/project/cosmonauts/Data/preprocessed
+data_dir=/home/smortaheb/Projects/Brain-DTI/Structure-Function/Data/bids/prisma_temp
+preproc_dir=/home/smortaheb/Projects/Brain-DTI/Structure-Function/Data/preprocessed/ROS
 
 # Loop over subjects
 for subj_path in ${data_dir}/sub-*; do
@@ -37,7 +37,7 @@ for subj_path in ${data_dir}/sub-*; do
 
     # Determine RUNID based on ACQID preference
     if [ ${acqid}=="ge" ]; then
-      # For ge scanner, prefer dti over fmri
+     #  For ge scanner, prefer dti over fmri
       if ls ${anat_dir}/sub-${subid}_ses-${sesid}_acq-ge_run-dti_T1w.nii; then
         runid="dti"
       elif ls ${anat_dir}/sub-${subid}_ses-${sesid}_acq-ge_run-fmri_T1w.nii; then
