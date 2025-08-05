@@ -1,7 +1,7 @@
-function [matlabbatch, art_pth] = func_ArtDetection_batch(motionCorrectedDir, save_path, subj_name, ses, TR)
+function [matlabbatch, art_pth] = func_ArtDetection_batch(funcSaveDir, save_path, subj_name, ses, TR)
 
 matlabbatch = [];
-dataMotion = spm_select('FPList', motionCorrectedDir, ['^swra.*\.(img|nii)$']);
+dataMotion = spm_select('FPList', funcSaveDir, ['^sra.*\.(img|nii)$']);
 art_pth = fullfile(save_path, subj_name, ses, 'func', 'artResults');
 mkdir(art_pth);
 matlabbatch{1}.spm.stats.fmri_spec.dir = {art_pth};

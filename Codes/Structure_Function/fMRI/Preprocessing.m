@@ -6,9 +6,9 @@ clear
 % --- Set the following directories --- 
 
 % Directory of the BIDS formated data:
-bids_dir = '/Users/sepehrmortaheb/Desktop/pipeline_test/data';
+bids_dir = '/home/smortaheb/Projects/Brain-DTI/Structure-Function/Data/bids/ROS';
 % Save directory of the fMRI processing:
-save_dir = '/Users/sepehrmortaheb/Desktop/pipeline_test/preprocessed';
+save_dir = '/home/smortaheb/Projects/Brain-DTI/Structure-Function/Data/preprocessed/ROS';
 
 %##########################################################################
 % --- Set the Acquisition Parameters --- 
@@ -30,13 +30,34 @@ stc_ord = 6;
 stc_ref = 0;
 
 %##########################################################################
-% --- Set the Participants Information --- 
+% --- Set the Participants and Sessions Information --- 
 
-% Subjects list [Ex: {'sub-XXX'; 'sub-YYY'}]
-subj_list = {'sub-control01'};
+subjectDirs = dir(fullfile(bids_dir, 'sub-*'));
+Subjects = struct();
+for i=1:length(subjectDirs)
+    SubjName = subjectDirs(i).name;
+    SubjPath = fullfile(bids_dir, SubjName);
+    
+    % Get session folders
+    sessionDirs = dir(fullfile(SubjPath, 'ses-*'));
+    validSessions = {};
 
-% Sessions list [Ex: {'ses-ZZZ'; 'ses-TTT'}]
-ses_list = {'ses-01'};
+    for j=1:length(sessionDirs)
+        sessName = sessionDirs(j).name;
+        funcPath = fullfile(SubjPath, sessName, 'func');
+        if isfolder(funcPath)
+            funcContents = dir(funcPath);
+            funcFiles = funcContents(~ismember({funcContents.name}, {'.', '..'}));
+            if ~isempty(funcFiles)
+                validSessions{end+1} = sessName;
+            end
+        end
+    end
+
+    Subjects(i).id = SubjName;
+    Subjects(i).path = SubjPath;
+    Subjects(i).sessions = validSessions; 
+end
 
 %##########################################################################
 % --- Creating Handy Variables and AddPath Required Directories ---
@@ -54,29 +75,18 @@ Dirs.art = art_dir;
 
 % Acquisition Parameters Struct
 AcqParams = struct();
-AcqParams.name = task_name;
+AcqParams.task = task_name;
 AcqParams.tr = func_TR; 
 AcqParams.nslc = stc_num;
 AcqParams.ordslc = stc_ord;
 AcqParams.refslc = stc_ref;
 
-% Subject Information Struct
-Subjects(length(subj_list)) = struct();
-for i=1:length(subj_list)
-    Subjects(i).name = subj_list{i};
-    Subjects(i).dir = fullfile(bids_dir, subj_list{i});
-    Subjects(i).sessions = ses_list; 
-end
-
 % Adding required paths 
-addpath(art_dir);
-addpath(spm_dir);
 addpath(fullfile(spm_dir, 'src'));
 addpath('./functions');
 
 %% Functional Pipeline 
 
-for subj_num = 1:numel(subj_list)
-    subj = subj_list{subj_num};
+for subj_num = 1:numel(Subjects)
     func_PipelineSS(Dirs, Subjects(subj_num), AcqParams);
 end
