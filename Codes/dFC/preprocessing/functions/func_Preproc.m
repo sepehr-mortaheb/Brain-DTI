@@ -14,7 +14,7 @@ spm_jobman('run', matlabbatch)
  
 % Functional data
 motionCorrectedDir = fullfile(save_path, subj_name, ses, ...
-    'func', 'MotionCorrected');
+    'func');
 mkdir(motionCorrectedDir);
 datapath = fullfile(subj.dir, ses, 'func');
 delete(fullfile(datapath, 'a*.*'));
@@ -31,21 +31,8 @@ movefile(fullfile(datapath, 'wra*.*'), motionCorrectedDir);
 stresDir = fullfile(save_path, subj_name, ses, 'anat');
 mkdir(stresDir);
 datapath = fullfile(subj.dir, ses, 'anat');
-delete(fullfile(datapath, 'cat*.mat'));
-delete(fullfile(datapath, 'cat*.jpg'));
-delete(fullfile(datapath, 'cat*.txt'));
-delete(fullfile(datapath, 'cat*.xml'));
-delete(fullfile(datapath, 'msub*.*'));
-movefile(fullfile(datapath, 'wp1*.*'), stresDir);
-movefile(fullfile(datapath, 'wp2*.*'), stresDir);
-movefile(fullfile(datapath, 'wp3*.*'), stresDir);
-movefile(fullfile(datapath, 'mwp1*.*'), stresDir);
-movefile(fullfile(datapath, 'mwp2*.*'), stresDir);
-movefile(fullfile(datapath, 'mwp3*.*'), stresDir);
-movefile(fullfile(datapath, 'wmsub*.*'), stresDir);
-movefile(fullfile(datapath, 'y_*.*'), stresDir);
-movefile(fullfile(datapath, 'iy_*.*'), stresDir);
-movefile(fullfile(datapath, 'cat*.pdf'), stresDir);
+movefile(fullfile(datapath, 'mri'), stresDir);
+movefile(fullfile(datapath, 'report'), stresDir);
  
 %% Run Artifact Detection Batch
   
