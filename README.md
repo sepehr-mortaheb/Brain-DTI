@@ -19,9 +19,9 @@ This pipeline consists of the following steps:
 
 - Slice Timing Correction 
 - Realignment
-- Segmentation of the structural data
+- Segmentation of the structural data (for the Structure-Function project, we use the 5ttgen results of MRTrix)
 - Coregistration of the functional data into the T1 image.
-- Normalization to the MNI space
+- Normalization to the MNI space (for the Structure-Function project, this step is eliminated)
   - It uses the forward transformation parameters of the segmentation step, to normalize the functional data into the MNI space. 
 - Smoothing 
 
