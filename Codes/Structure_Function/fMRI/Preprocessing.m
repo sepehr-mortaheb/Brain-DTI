@@ -87,6 +87,7 @@ addpath('./functions');
 
 %% Functional Pipeline 
 
+load preprocessed_sessions.mat;
 for subj_num = 1:numel(Subjects)
     func_PipelineSS(Dirs, Subjects(subj_num), AcqParams);
 end

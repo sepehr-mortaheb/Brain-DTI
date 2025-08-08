@@ -11,6 +11,7 @@ end
 
 %% Preprocessing loop over the sessions
 for i = 1:numel(ses_list)
+
     ses = ses_list{i};
 
     % reading the data
@@ -18,5 +19,7 @@ for i = 1:numel(ses_list)
 
     % perform preprocessing
     func_Preproc(inpfiles, Dirs, subj, ses, AcqParams)
+
     close all
+
 end
