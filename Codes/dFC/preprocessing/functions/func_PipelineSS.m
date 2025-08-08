@@ -12,12 +12,13 @@ end
 %% Preprocessing loop over the sessions
 for i = 1:numel(ses_list)
     ses = ses_list{i};
+    if ~isfolder(fullfile(out_dir, subj.name, ses))
+        % reading the data
+        inpfiles = func_ReadFiles(subj, ses, task_name);
 
-    % reading the data
-    inpfiles = func_ReadFiles(subj, ses, task_name);
-
-    % perform preprocessing
-    func_Preproc(inpfiles, Dirs, subj, ses, AcqParams)
-    close all
+        % perform preprocessing
+        func_Preproc(inpfiles, Dirs, subj, ses, AcqParams)
+        close all
+    end
 
 end

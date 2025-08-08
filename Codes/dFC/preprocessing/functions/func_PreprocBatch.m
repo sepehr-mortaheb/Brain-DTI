@@ -33,7 +33,7 @@ switch stc_ord
         str = char(raw'); 
         fclose(fid); 
         val = jsondecode(str);
-        slice_order = val.SliceTiming; 
+        slice_order = val.SliceTiming*1000; 
 end
 
 %% Reading the structural and functional data 

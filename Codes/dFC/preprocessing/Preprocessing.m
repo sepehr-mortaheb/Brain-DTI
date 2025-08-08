@@ -32,14 +32,14 @@ stc_ref = 0;
 %##########################################################################
 % --- Set the Participants Information --- 
 
-subjectDirs = dir(fullfile(bids_dir, 'sub-control01*'));
+subjectDirs = dir(fullfile(bids_dir, 'sub-*'));
 Subjects = struct();
 for i=1:length(subjectDirs)
     SubjName = subjectDirs(i).name;
     SubjPath = fullfile(bids_dir, SubjName);
     
     % Get session folders
-    sessionDirs = dir(fullfile(SubjPath, 'ses-01*'));
+    sessionDirs = dir(fullfile(SubjPath, 'ses-*'));
     validSessions = {};
 
     for j=1:length(sessionDirs)
