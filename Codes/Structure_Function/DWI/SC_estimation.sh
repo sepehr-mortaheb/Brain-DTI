@@ -27,23 +27,26 @@ for subj_path in ${preproc_dir}/sub-*; do
 
         # Determine ACQID (scanner type) - fixed per participant
         if ls ${anat_dir}/sub-${subid}_ses-${sesid}_acq-ge_*_T1w_bc.nii; then
-            acqid="ge"
-        else
-            acqid="prisma"
+            echo " GE Scanner Found!"
+            continue
         fi
+         #   acqid="ge"
+        #else
+            acqid="prisma"
+        #fi
 
         # Determine RUNID based on ACQID preference
-        if [ ${acqid}=="ge" ]; then
+        #if [ ${acqid}=="ge" ]; then
             #  For ge scanner, prefer dti over fmri
-            if ls ${anat_dir}/sub-${subid}_ses-${sesid}_acq-ge_run-dti_T1w_bc.nii; then
-                runid="dti"
-            elif ls ${anat_dir}/sub-${subid}_ses-${sesid}_acq-ge_run-fmri_T1w_bc.nii; then
-                runid="fmri"
-            else
-                echo "  Warning: No dti or fmri run found for ge in ${anat_dir}. Skipping."
-                continue
-            fi
-        else
+         #   if ls ${anat_dir}/sub-${subid}_ses-${sesid}_acq-ge_run-dti_T1w_bc.nii; then
+           #     runid="dti"
+          #  elif ls ${anat_dir}/sub-${subid}_ses-${sesid}_acq-ge_run-fmri_T1w_bc.nii; then
+            #    runid="fmri"
+           # else
+            #    echo "  Warning: No dti or fmri run found for ge in ${anat_dir}. Skipping."
+             #   continue
+            #fi
+       # else
             # For siemens scanner, prefer highch over lowch
             if ls ${anat_dir}/sub-${subid}_ses-${sesid}_acq-prisma_run-highch_T1w_bc.nii; then
                 runid="highch"
@@ -53,7 +56,7 @@ for subj_path in ${preproc_dir}/sub-*; do
                 echo "  Warning: No highch or lowch run found for siemens in ${anat_dir}. Skipping."
                 continue
             fi
-        fi
+        #fi
 
         infile_anat=${anat_dir}/sub-${subid}_ses-${sesid}_acq-${acqid}_run-${runid}_T1w_bc.nii
 
