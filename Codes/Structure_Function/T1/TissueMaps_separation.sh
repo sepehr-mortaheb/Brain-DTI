@@ -22,7 +22,7 @@ for subj_path in ${preproc_dir}/sub-*; do
 	mrconvert ${result_dir}/5tt.mif -coord 3 2 ${result_dir}/wm.nii -force
 	mrconvert ${result_dir}/5tt.mif -coord 3 3 ${result_dir}/csf.nii -force
 	
-	mrcalc ${result_dir}/gm_cortical.nii ${result_dir}/gm_subcortical.nii -add ${result_dir}/.nii -force       
+	mrcalc ${result_dir}/gm_cortical.nii ${result_dir}/gm_subcortical.nii -add ${result_dir}/gm.nii -force       
   done
 done
 

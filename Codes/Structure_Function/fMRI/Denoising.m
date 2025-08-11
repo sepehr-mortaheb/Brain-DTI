@@ -55,13 +55,13 @@ for i = 1:length(subjects)
             sname = dir(fullfile(preproc_dir, subj, ses, 'anat/sub*bc.nii'));
             struct_file = cellstr(fullfile(sname.folder, sname.name));
             % reading GM mask in the MNI space
-            gname = dir(fullfile(preproc_dir, subj, ses, 'anat/mri/mwp1*.nii'));
+            gname = dir(fullfile(preproc_dir, subj, ses, 'anat/gm.nii'));
             gm_file = cellstr(fullfile(gname.folder, gname.name));
             % reading WM mask in the MNI space
-            wname = dir(fullfile(preproc_dir, subj, ses, 'anat/mri/mwp2*.nii'));
+            wname = dir(fullfile(preproc_dir, subj, ses, 'anat/wm.nii'));
             wm_file = cellstr(fullfile(wname.folder, wname.name));
             % reading CSF mask in the MNI space
-            cname = dir(fullfile(preproc_dir, subj, ses, 'anat/mri/mwp3*.nii'));
+            cname = dir(fullfile(preproc_dir, subj, ses, 'anat/csf.nii'));
             csf_file = cellstr(fullfile(cname.folder, cname.name));
             
             % reading movement regressors
@@ -70,7 +70,7 @@ for i = 1:length(subjects)
             mov_file = cellstr(fullfile(movname.folder, movname.name));
             % reading outlier volumes
             outname = dir(fullfile(preproc_dir, subj, ses, ...
-                'func/art_regression_outliers_swra*.mat'));
+                'func/art_regression_outliers_sra*.mat'));
             out_file = cellstr(fullfile(outname.folder, outname.name));
             
             
@@ -94,6 +94,11 @@ for i = 1:length(subjects)
             batch.Setup.covariates.files = {mov_file; out_file};
             batch.Setup.analyses = 2;
             batch.Setup.analysisunits = 2;
+            batch.Setup.voxelmask = 2; % Implicit Mask
+            % batch.Setup.spatialalignment = 1;
+            % batch.Setup.analyses = 'subject';
+            % batch.Setup.analysis_space = 'subject';
+            batch.Setup.voxelresolution = 3;
             batch.Setup.isnew = 1;
             batch.Setup.done = 1;
             

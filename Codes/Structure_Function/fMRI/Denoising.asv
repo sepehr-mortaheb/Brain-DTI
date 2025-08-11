@@ -11,7 +11,7 @@ func_TR = 2;
 % --- Set the Participants and Sessions Information --- 
 
 subjectDirs = dir(fullfile(preproc_dir, 'sub-*'));
-Subjects = struct();
+subjects = struct();
 for i=1:length(subjectDirs)
     SubjName = subjectDirs(i).name;
     SubjPath = fullfile(preproc_dir, SubjName);
@@ -32,35 +32,36 @@ for i=1:length(subjectDirs)
         end
     end
 
-    Subjects(i).id = SubjName;
-    Subjects(i).path = SubjPath;
-    Subjects(i).sessions = validSessions; 
+    subjects(i).id = SubjName;
+    subjects(i).path = SubjPath;
+    subjects(i).sessions = validSessions; 
 end
 
 %% Run the Denoising Loop 
-for i = 1:length(subj_list)
-    subj = subj_list{i};
-    for j =1:length(ses_list)
-        ses = ses_list{j};
+for i = 1:length(subjects)
+    subj = subjects(i).id;
+    sessions = subjects(i).sessions;
+    for j =1:length(sessions)
+        ses = sessions{j};
         if isfolder(fullfile(preproc_dir, subj, ses))
             % =====================================================================
             % reading files
             
             % reading smoothed functional data in the MNI space
             fname = dir(fullfile(preproc_dir, subj, ses, ...
-            'func/swra*.nii'));
+            'func/sra*.nii'));
             func_file = cellstr(fullfile(fname.folder, fname.name));
             % reading structural data in the MNI space
-            sname = dir(fullfile(preproc_dir, subj, ses, 'anat/mri/wmsub*.nii'));
+            sname = dir(fullfile(preproc_dir, subj, ses, 'anat/sub*bc.nii'));
             struct_file = cellstr(fullfile(sname.folder, sname.name));
             % reading GM mask in the MNI space
-            gname = dir(fullfile(preproc_dir, subj, ses, 'anat/mri/mwp1*.nii'));
+            gname = dir(fullfile(preproc_dir, subj, ses, 'anat/gm.nii'));
             gm_file = cellstr(fullfile(gname.folder, gname.name));
             % reading WM mask in the MNI space
-            wname = dir(fullfile(preproc_dir, subj, ses, 'anat/mri/mwp2*.nii'));
+            wname = dir(fullfile(preproc_dir, subj, ses, 'anat/wm.nii'));
             wm_file = cellstr(fullfile(wname.folder, wname.name));
             % reading CSF mask in the MNI space
-            cname = dir(fullfile(preproc_dir, subj, ses, 'anat/mri/mwp3*.nii'));
+            cname = dir(fullfile(preproc_dir, subj, ses, 'anat/csf.nii'));
             csf_file = cellstr(fullfile(cname.folder, cname.name));
             
             % reading movement regressors
@@ -69,7 +70,7 @@ for i = 1:length(subj_list)
             mov_file = cellstr(fullfile(movname.folder, movname.name));
             % reading outlier volumes
             outname = dir(fullfile(preproc_dir, subj, ses, ...
-                'func/art_regression_outliers_swra*.mat'));
+                'func/art_regression_outliers_sra*.mat'));
             out_file = cellstr(fullfile(outname.folder, outname.name));
             
             
@@ -93,6 +94,11 @@ for i = 1:length(subj_list)
             batch.Setup.covariates.files = {mov_file; out_file};
             batch.Setup.analyses = 2;
             batch.Setup.analysisunits = 2;
+            batch.Setup.voxelmask = 2; % Implicit Mask
+            batch.Setup.spatialalignment = 1;
+            batch.Setup.analyses = 'subject';
+            batch.Setup.analysis_space = 'subject';
+            batch.Setup.voxelresolution = 3;
             batch.Setup.isnew = 1;
             batch.Setup.done = 1;
             
