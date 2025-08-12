@@ -27,6 +27,7 @@ for subj_path in ${preproc_dir}/sub-*; do
 
         # Determine ACQID (scanner type) - fixed per participant
         if ls ${anat_dir}/sub-${subid}_ses-${sesid}_acq-ge_*_T1w_bc.nii; then
+            echo " GE Scanner Found!"
             acqid="ge"
         else
             acqid="prisma"
