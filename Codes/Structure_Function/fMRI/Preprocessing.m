@@ -32,14 +32,14 @@ stc_ref = 0;
 %##########################################################################
 % --- Set the Participants and Sessions Information --- 
 
-subjectDirs = dir(fullfile(bids_dir, 'sub-*'));
+subjectDirs = dir(fullfile(bids_dir, 'sub-cosmonaut16*'));
 Subjects = struct();
 for i=1:length(subjectDirs)
     SubjName = subjectDirs(i).name;
     SubjPath = fullfile(bids_dir, SubjName);
     
     % Get session folders
-    sessionDirs = dir(fullfile(SubjPath, 'ses-*'));
+    sessionDirs = dir(fullfile(SubjPath, 'ses-f1pre1*'));
     validSessions = {};
 
     for j=1:length(sessionDirs)
@@ -87,7 +87,6 @@ addpath('./functions');
 
 %% Functional Pipeline 
 
-load preprocessed_sessions.mat;
 for subj_num = 1:numel(Subjects)
     func_PipelineSS(Dirs, Subjects(subj_num), AcqParams);
 end

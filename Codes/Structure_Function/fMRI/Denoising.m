@@ -37,6 +37,7 @@ for i=1:length(subjectDirs)
     subjects(i).sessions = validSessions; 
 end
 
+
 %% Run the Denoising Loop 
 for i = 1:length(subjects)
     subj = subjects(i).id;
@@ -47,20 +48,20 @@ for i = 1:length(subjects)
             % =====================================================================
             % reading files
             
-            % reading smoothed functional data in the MNI space
+            % reading smoothed functional data in the subject space
             fname = dir(fullfile(preproc_dir, subj, ses, ...
             'func/sra*.nii'));
             func_file = cellstr(fullfile(fname.folder, fname.name));
-            % reading structural data in the MNI space
+            % reading structural data in the subject space
             sname = dir(fullfile(preproc_dir, subj, ses, 'anat/sub*bc.nii'));
             struct_file = cellstr(fullfile(sname.folder, sname.name));
-            % reading GM mask in the MNI space
+            % reading GM mask in the subject space
             gname = dir(fullfile(preproc_dir, subj, ses, 'anat/gm.nii'));
             gm_file = cellstr(fullfile(gname.folder, gname.name));
-            % reading WM mask in the MNI space
+            % reading WM mask in the subject space
             wname = dir(fullfile(preproc_dir, subj, ses, 'anat/wm.nii'));
             wm_file = cellstr(fullfile(wname.folder, wname.name));
-            % reading CSF mask in the MNI space
+            % reading CSF mask in the subject space
             cname = dir(fullfile(preproc_dir, subj, ses, 'anat/csf.nii'));
             csf_file = cellstr(fullfile(cname.folder, cname.name));
             
@@ -72,8 +73,12 @@ for i = 1:length(subjects)
             outname = dir(fullfile(preproc_dir, subj, ses, ...
                 'func/art_regression_outliers_sra*.mat'));
             out_file = cellstr(fullfile(outname.folder, outname.name));
-            
-            
+
+            % reading atlas files in the subject space
+            atlas_SCH100 = fullfile(preproc_dir, subj, ses, 'anat/SCH100_subj.nii.gz');
+            atlas_SCH400 = fullfile(preproc_dir, subj, ses, 'anat/SCH400_subj.nii.gz');
+            atlas_AAL = fullfile(preproc_dir, subj, ses, 'anat/AAL_subj.nii.gz');
+
             % =====================================================================
             % CONN batch initialization
             batch.filename = fullfile(fullfile(preproc_dir, subj, ses, 'conn_temp.mat'));
@@ -84,21 +89,28 @@ for i = 1:length(subjects)
             batch.Setup.functionals{1}{1} = func_file;
             batch.Setup.structurals{1} = struct_file;
             batch.Setup.RT = func_TR;
-            batch.Setup.conditions.names = {'rest'};
-            batch.Setup.conditions.onsets{1}{1}{1} = 0;
-            batch.Setup.conditions.durations{1}{1}{1} = inf;
-            batch.Setup.masks.Grey{1} = gm_file;
-            batch.Setup.masks.White{1} = wm_file;
-            batch.Setup.masks.CSF{1} = csf_file;
-            batch.Setup.covariates.names = {'movement'; 'outliers'};
-            batch.Setup.covariates.files = {mov_file; out_file};
             batch.Setup.analyses = 2;
             batch.Setup.analysisunits = 2;
             batch.Setup.voxelmask = 2; % Implicit Mask
-            % batch.Setup.spatialalignment = 1;
-            % batch.Setup.analyses = 'subject';
-            % batch.Setup.analysis_space = 'subject';
-            batch.Setup.voxelresolution = 3;
+            batch.Setup.voxelresolution = 3; % Analyze in the native functional space
+
+            batch.Setup.conditions.names = {'rest'};
+            batch.Setup.conditions.onsets{1}{1}{1} = 0;
+            batch.Setup.conditions.durations{1}{1}{1} = inf;
+
+            batch.Setup.masks.Grey{1} = gm_file;
+            batch.Setup.masks.White{1} = wm_file;
+            batch.Setup.masks.CSF{1} = csf_file;
+
+            batch.Setup.covariates.names = {'movement'; 'outliers'};
+            batch.Setup.covariates.files = {mov_file; out_file};
+            
+            batch.Setup.rois.names = {'SCH100', 'SCH400', 'AAL'};
+            batch.Setup.rois.files{1}{1}{1} = atlas_SCH100;
+            batch.Setup.rois.files{2}{1}{1} = atlas_SCH400;
+            batch.Setup.rois.files{3}{1}{1} = atlas_AAL;
+            batch.Setup.rois.multiplelabels = [1, 1, 1];
+            batch.Setup.rois.mask = [1, 1, 1];
             batch.Setup.isnew = 1;
             batch.Setup.done = 1;
             
@@ -127,12 +139,11 @@ for i = 1:length(subjects)
                 mkdir(fullfile(denoised_dir, subj, ses));
             end
             movefile('niftiDATA*.nii', fullfile(denoised_dir, subj, ses));
+            movefile('ROI_Subject001_Condition000.mat', fullfile(denoised_dir, subj, ses));
             delete(fullfile(preproc_dir, subj, ses, 'conn_temp.mat'));
             rmdir(fullfile(preproc_dir, subj, ses, 'conn_temp*'), 's');
             cd(curr_path)
-            
-            % =====================================================================
-            % removing unnecessary files and directories
+
             
         end
     end
