@@ -1,0 +1,92 @@
+```{r}
+library(lme4)
+library(lmerTest)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(broom.mixed)
+library(openxlsx)
+```
+
+```{r} 
+# Reading the main data frame
+res_dir = '/Users/sepehrmortaheb/MyDrive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/Analysis/results/SC/'
+df <- read.xlsx(
+  file.path(
+    res_dir, 
+    'SC_vals_SCH100.xlsx'
+  )
+)
+
+# Filtering the dataframe to keep the pre and post values of the first flight
+df_filtered <- df %>%
+  filter(
+    flight == 'f1', 
+    time %in% c("pre2", "post")
+  ) %>%
+  mutate(
+    time = factor(
+      time, 
+      levels = c("pre2", "post")
+    )
+  )
+```
+
+```{r}
+# Function to fit LMM per edge
+fit_lmm <- function(data) {
+  model <- tryCatch(
+    lmer(val ~ time + (1 | subject), data = data),
+    error = function(e) return(NULL)
+  )
+  singular <- FALSE
+  if (!is.null(model)) {
+    singular <- isSingular(model, tol = 1e-4)
+  }
+  
+  return(list(model = model, singular = singular))
+}
+
+# Run model per edge
+model_results <- df_filtered %>%
+  group_by(edge) %>%
+    nest() %>%
+      mutate(
+        fit = map(data, fit_lmm),
+        model = map(fit, "model"),
+        singular_fit = map_lgl(fit, "singular"),
+        tidy = map(model, ~ if (!is.null(.x)) tidy(.x) else NULL)
+      ) %>%
+        unnest(tidy, keep_empty = TRUE) %>%
+          filter(term == "timepost")  # keep only the post vs pre comparison
+
+# Apply FDR correction
+model_results <- model_results %>%
+  mutate(p_fdr = p.adjust(p.value, method = "fdr"))
+
+# Arrange by significance
+model_results_sorted <- model_results %>%
+  arrange(p_fdr)
+
+# View top significant edges
+print(head(model_results_sorted, 20))
+
+# Save the results
+model_results_clean <- model_results_sorted %>%
+  select(-model, -fit, -data)
+
+write.xlsx(
+  model_results_clean, 
+  file.path(
+    res_dir, 
+    "MassUnivariate/SC_MassUnivariate_LMM_SCH100.xlsx"
+  ),
+  overwrite = TRUE
+)
+
+```
+
+
+
+
+
