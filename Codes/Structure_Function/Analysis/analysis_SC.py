@@ -64,13 +64,13 @@ df.to_excel(op.join(res_dir, f'SC/SC_vals_{atlas}.xlsx'))
 # Excel file that can be loaded and be visualized. 
 
 # Reading the atlas information 
-atlas = datasets.fetch_atlas_schaefer_2018(
+atlas_file = datasets.fetch_atlas_schaefer_2018(
     n_rois=100, 
     yeo_networks=7, 
     resolution_mm=1
 )
-atlas_img = image.load_img(atlas.maps)
-labels = atlas.labels  # Labels from "1" to "100"
+atlas_img = image.load_img(atlas_file.maps)
+labels = atlas_file.labels  # Labels from "1" to "100"
 region_ids = [f"R{i}" for i in range(1, 101)]
 atlas_data = image.load_img(atlas_img).get_fdata()
 region_coords = {}
@@ -124,8 +124,13 @@ f.savefig(
     op.join(
         res_dir, f'SC/MassUnivariate/SC_Post-Pre_{atlas}.png'
     ),
-    dpi=300,
-    bbox_inches='tight'
+    dpi=300
+)
+f.savefig(
+    op.join(
+        res_dir, f'SC/MassUnivariate/SC_Post-Pre_{atlas}.pdf'
+    ),
+    dpi=300
 )
 #%% Reading and Averaging SC matrices
 TSC=[]

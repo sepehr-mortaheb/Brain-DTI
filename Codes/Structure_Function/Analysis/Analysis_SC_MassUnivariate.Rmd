@@ -19,10 +19,20 @@ df <- read.xlsx(
 )
 
 # Filtering the dataframe to keep the pre and post values of the first flight
+
+# subjects to exclude
+excluded_subjects <- c(
+  "sub-cosmonaut13", 
+  "sub-cosmonaut15", 
+  "sub-cosmonaut16",
+  "sub-cosmonaut26"
+) 
+
 df_filtered <- df %>%
   filter(
     flight == 'f1', 
-    time %in% c("pre2", "post")
+    time %in% c("pre2", "post"),
+    !subject %in% excluded_subjects
   ) %>%
   mutate(
     time = factor(
@@ -65,8 +75,9 @@ model_results <- model_results %>%
   mutate(p_fdr = p.adjust(p.value, method = "fdr"))
 
 # Arrange by significance
+model_results["abs_est"] = abs(model_results["estimate"])
 model_results_sorted <- model_results %>%
-  arrange(p_fdr)
+  arrange(abs_est)
 
 # View top significant edges
 print(head(model_results_sorted, 20))
@@ -84,6 +95,12 @@ write.xlsx(
   overwrite = TRUE
 )
 
+```
+```{r}
+model_results["abs_est"] = abs(model_results["estimate"])
+model_results_sorted <- model_results %>%
+  arrange(desc(abs_est)) %>%
+    filter(p_fdr < 0.05)
 ```
 
 
