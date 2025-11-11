@@ -92,17 +92,19 @@ df = pd.read_excel(file_addr)
 
 # Filter significant edges
 sig_edges = df[df["p_fdr"] < 0.05].copy()
-sig_edges[["node1", "node2"]] = sig_edges["edge"].str.split("-", expand=True)
-sig_edges = sig_edges[
-    sig_edges["node1"].isin(region_coords) & sig_edges["node2"].isin(region_coords)
-]
 
-# Graph Creation
-G = nx.Graph()
-for _, row in sig_edges.iterrows():
-    n1, n2 = row["node1"], row["node2"]
-    weight = row["estimate"]
-    G.add_edge(n1, n2, weight=weight)
+if len(sig_edges) > 0:
+    sig_edges[["node1", "node2"]] = sig_edges["edge"].str.split("-", expand=True)
+    sig_edges = sig_edges[
+        sig_edges["node1"].isin(region_coords) & sig_edges["node2"].isin(region_coords)
+    ]
+
+    # Graph Creation
+    G = nx.Graph()
+    for _, row in sig_edges.iterrows():
+        n1, n2 = row["node1"], row["node2"]
+        weight = row["estimate"]
+        G.add_edge(n1, n2, weight=weight)
 
 # Plotting the Graph on the Brain Atlas 
 coords = [region_coords[n] for n in G.nodes()]
@@ -303,3 +305,92 @@ for i in evoi:
     
 
 np.unique(atlas_mat)
+
+#%% Eigenvalues Comparisons 
+
+df_eig = pd.DataFrame([])
+for sub in subjects:
+    if sub.startswith('sub-cosmonaut'):
+        print(sub)
+        for ses in sessions[sub]:
+            print(f'---- {ses}')
+            flight = ses.split('-')[1][0:2]
+            tp = ses.split('-')[1][2:]
+
+            sc = np.loadtxt(
+                op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
+                delimiter=','
+            )
+
+            G = pygsp.graphs.Graph(sc)
+            G.compute_laplacian('normalized') 
+            G.compute_fourier_basis(recompute=True)
+            eigenValues = G.e
+
+            for eig in range(len(eigenValues)):
+                dftmp = pd.DataFrame([])
+                dftmp['subject'] = [sub]
+                dftmp['flight'] = [flight]
+                dftmp['time'] = [tp]
+                dftmp['eig'] = [eig]
+                dftmp['val'] = [eigenValues[eig]]
+                df_eig = pd.concat((df_eig, dftmp), ignore_index=True)
+df_eig.to_excel(op.join(res_dir, f'SC/SC_eigenvalues_{atlas}.xlsx'))
+
+#%% Post vs Pre analysis plots
+# The LMM analysis has been done in R and the results have been saved in an 
+# Excel file that can be loaded and be visualized. 
+
+# Reading the stat results 
+file_addr = op.join(
+    res_dir,
+    'SC/Eigenvalues/SC_eigenvalues_LMM_SCH100.xlsx'
+)
+df_stat = pd.read_excel(file_addr)
+
+# Filter significant eigenvalues
+sig_eigs = df_stat[df_stat["p_fdr"] < 0.05].copy()
+
+exc_list = [
+    'sub-cosmonaut13',
+    'sub-cosmonaut15',
+    'sub-cosmonaut16',
+    'sub-cosmonaut26',
+    'sub-control16',
+    'sub-control18',
+    'sub-control19',
+]
+df_eig_filt = df_eig
+for sub in exc_list:
+    df_eig_filt = df_eig_filt[df_eig_filt.subject!=sub]
+df_eig_filt = df_eig_filt.reset_index()
+df_eig_filt = df_eig_filt.drop('index', axis=1)
+
+df_eig_filt = df_eig_filt[df_eig_filt.flight=='f1']
+df_eig_filt = df_eig_filt[(df_eig_filt.time=='pre2') | (df_eig_filt.time=='post')]
+
+fig, ax = plt.subplots(
+    1,
+    1,
+    figsize=(40,30)
+)
+
+sns.boxplot(
+    x='eig', 
+    y='val',
+    data=df_eig_filt,
+    hue='time',
+    hue_order=['pre2', 'post'],
+    ax=ax,
+    width=0.5,
+    showfliers=False
+)
+ax.grid(True)
+fig.savefig(
+    op.join(
+        res_dir, 
+        f'SC/Eigenvalues/SC_eigenvalues_{atlas}.pdf'
+    ), 
+    dpi=300
+)
+# %%

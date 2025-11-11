@@ -16,7 +16,11 @@ mni_dir = '/Users/sepehrmortaheb/MyDrive/Academic/LEIA/Projects/BRAIN-DTI/Cosmon
 
 atlas = 'SCH100'
 subjects = np.sort(os.listdir(data_dir))
+# to remove .DS files in mac
+subjects = [sub for sub in subjects if sub.startswith('sub')] 
 sessions = {sub:np.sort(os.listdir(op.join(data_dir, sub))) for sub in subjects}
+# to remove .DS files in mac
+sessions = {sub:[ses for ses in sessions[sub] if ses.startswith('ses')] for sub in subjects}
 
 # %% Preparing the structural harmonic info
 
