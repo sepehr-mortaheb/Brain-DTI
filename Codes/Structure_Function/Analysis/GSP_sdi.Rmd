@@ -1,0 +1,98 @@
+```{r}
+library(lme4)
+library(lmerTest)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(broom.mixed)
+library(openxlsx)
+```
+
+```{r} 
+# Reading the main data frame
+res_dir = '/Users/sepehrmortaheb/MyDrive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/Analysis/results/GSP/'
+df <- read.xlsx(
+  file.path(
+    res_dir, 
+    'df_sdi_cosmonauts_SCH100_c-21.xlsx'
+  )
+)
+
+# Filtering the dataframe to keep the pre and post values of the first flight
+
+# subjects to exclude
+excluded_subjects <- c(
+  "sub-cosmonaut13", 
+  "sub-cosmonaut15", 
+  "sub-cosmonaut16",
+  "sub-cosmonaut26"
+) 
+
+df_filtered <- df %>%
+  filter(
+    flight == 'f1', 
+    time %in% c("pre2", "post"),
+    !subject %in% excluded_subjects
+  ) %>%
+  mutate(
+    time = factor(
+      time, 
+      levels = c("pre2", "post")
+    )
+  )
+```
+
+```{r}
+# Function to fit LMM per region
+fit_lmm <- function(data) {
+  model <- tryCatch(
+    lmer(sdi ~ time + (1 | subject), data = data),
+    error = function(e) return(NULL)
+  )
+  singular <- FALSE
+  if (!is.null(model)) {
+    singular <- isSingular(model, tol = 1e-4)
+  }
+  
+  return(list(model = model, singular = singular))
+}
+
+# Run model per eigenvalue
+model_results <- df_filtered %>%
+  group_by(region) %>%
+    nest() %>%
+      mutate(
+        fit = map(data, fit_lmm),
+        model = map(fit, "model"),
+        singular_fit = map_lgl(fit, "singular"),
+        tidy = map(model, ~ if (!is.null(.x)) tidy(.x) else NULL)
+      ) %>%
+        unnest(tidy, keep_empty = TRUE) %>%
+          filter(term == "timepost")  # keep only the post vs pre comparison
+
+# Apply FDR correction
+#model_results <- model_results %>%
+model_results['p_fdr'] = p.adjust(model_results$p.value, method='fdr')
+
+# Arrange by significance
+model_results["abs_est"] = abs(model_results["estimate"])
+model_results_sorted <- model_results %>%
+  arrange(p_fdr)
+
+# View top significant regions
+print(head(model_results_sorted, 20))
+
+# Save the results
+model_results_clean <- model_results_sorted %>%
+  select(-model, -fit, -data)
+
+write.xlsx(
+  model_results_clean, 
+  file.path(
+    res_dir, 
+    "sdi/GSP_sdi_averageSC_LMM_SCH100.xlsx"
+  ),
+  overwrite = TRUE
+)
+
+```

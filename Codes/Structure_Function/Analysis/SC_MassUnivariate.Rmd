@@ -14,7 +14,7 @@ res_dir = '/Users/sepehrmortaheb/MyDrive/Academic/LEIA/Projects/BRAIN-DTI/Cosmon
 df <- read.xlsx(
   file.path(
     res_dir, 
-    'SC_vals_SCH100.xlsx'
+    'SC_Cosmonauts_SCH100.xlsx'
   )
 )
 
@@ -38,7 +38,8 @@ df_filtered <- df %>%
     time = factor(
       time, 
       levels = c("pre2", "post")
-    )
+    ),
+    log_val = log(val+1e-5, base=2)
   )
 ```
 
@@ -46,7 +47,7 @@ df_filtered <- df %>%
 # Function to fit LMM per edge
 fit_lmm <- function(data) {
   model <- tryCatch(
-    lmer(val ~ time + (1 | subject), data = data),
+    lmer(log_val ~ time + (1 | subject), data = data),
     error = function(e) return(NULL)
   )
   singular <- FALSE
@@ -71,13 +72,13 @@ model_results <- df_filtered %>%
           filter(term == "timepost")  # keep only the post vs pre comparison
 
 # Apply FDR correction
-model_results <- model_results %>%
-  mutate(p_fdr = p.adjust(p.value, method = "fdr"))
+#model_results <- model_results %>%
+model_results['p_fdr'] = p.adjust(model_results$p.value, method='fdr')
 
 # Arrange by significance
-model_results["abs_est"] = abs(model_results["estimate"])
+#model_results["abs_est"] = abs(model_results["estimate"])
 model_results_sorted <- model_results %>%
-  arrange(abs_est)
+  arrange(p_fdr)
 
 # View top significant edges
 print(head(model_results_sorted, 20))
@@ -95,12 +96,6 @@ write.xlsx(
   overwrite = TRUE
 )
 
-```
-```{r}
-model_results["abs_est"] = abs(model_results["estimate"])
-model_results_sorted <- model_results %>%
-  arrange(desc(abs_est)) %>%
-    filter(p_fdr < 0.05)
 ```
 
 
