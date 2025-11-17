@@ -38,7 +38,6 @@ elif atlas=='SCH400':
 elif atlas=='AAL':
     R = 170
 
-#%%
 df = pd.DataFrame([])
 for sub in subjects:
     if sub.startswith('sub-cosmonaut'):
