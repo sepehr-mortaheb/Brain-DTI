@@ -29,9 +29,16 @@ sessions = {sub:[ses for ses in sessions[sub] if ses.startswith('ses')] for sub 
 
 #%% Reading Cosmonauts' and Controls' SC files and dataframe creation
 
-atlas = 'AAL' # SCH100, SCH400, AAL
-R = 170 # 100, 400, 170
+atlas = 'SCH100' # SCH100, SCH400, AAL
 
+if atlas=='SCH100':
+    R = 100 
+elif atlas=='SCH400':
+    R = 400 
+elif atlas=='AAL':
+    R = 170
+
+#%%
 df = pd.DataFrame([])
 for sub in subjects:
     if sub.startswith('sub-cosmonaut'):
@@ -109,8 +116,8 @@ elif atlas == 'AAL':
     atlas_file = datasets.fetch_atlas_aal()
 
 atlas_img = image.load_img(atlas_file.maps)
-labels = atlas_file.labels  # Labels from "1" to "100"
-region_ids = [f"R{i}" for i in range(1, 101)]
+labels = atlas_file.labels  # Labels from "1" to "R"
+region_ids = [f"R{i}" for i in range(1, R+1)]
 atlas_data = image.load_img(atlas_img).get_fdata()
 region_coords = {}
 for i, region_label in enumerate(region_ids, 1):
@@ -125,19 +132,40 @@ for i, region_label in enumerate(region_ids, 1):
 # Reading the stat results 
 file_addr = op.join(
     res_dir,
-    'SC/MassUnivariate/SC_MassUnivariate_LMM_SCH100.xlsx'
+    f'SC/MassUnivariate/SC_MassUnivariate_LMM_{atlas}.xlsx'
 )
 df = pd.read_excel(file_addr)
 
 # Filter significant edges
 sig_edges = df[df["p_fdr"] < 0.05].copy()
 
-if len(sig_edges) > 0:
+if len(sig_edges) == 0:
+    print('No significant edge was found!')
+    df[["node1", "node2"]] = df["edge"].str.split("-", expand=True)
+    df = df[df["node1"].isin(region_coords) & df["node2"].isin(region_coords)]
+    # Graph Creation
+    G = nx.Graph()
+    for _, row in df.iterrows():
+        n1, n2 = row["node1"], row["node2"]
+        weight = 0
+        G.add_edge(n1, n2, weight=weight)
+    # Plotting the Graph on the Brain Atlas 
+    coords = [region_coords[n] for n in G.nodes()]
+    f = plotting.plot_connectome(
+        adjacency_matrix=nx.to_numpy_array(G, weight="weight"),
+        node_coords=coords,
+        node_color='black',
+        node_size=5,
+        colorbar=False,
+        display_mode="ortho",
+        annotate=False
+    )   
+
+else:
     sig_edges[["node1", "node2"]] = sig_edges["edge"].str.split("-", expand=True)
     sig_edges = sig_edges[
         sig_edges["node1"].isin(region_coords) & sig_edges["node2"].isin(region_coords)
     ]
-
     # Graph Creation
     G = nx.Graph()
     for _, row in sig_edges.iterrows():
@@ -145,20 +173,20 @@ if len(sig_edges) > 0:
         weight = row["estimate"]
         G.add_edge(n1, n2, weight=weight)
 
-# Plotting the Graph on the Brain Atlas 
-coords = [region_coords[n] for n in G.nodes()]
+    # Plotting the Graph on the Brain Atlas 
+    coords = [region_coords[n] for n in G.nodes()]
 
-f = plotting.plot_connectome(
-    adjacency_matrix=nx.to_numpy_array(G, weight="weight"),
-    node_coords=coords,
-    node_color='black',
-    node_size=5,
-    edge_threshold="1%",
-    edge_cmap="bwr",
-    colorbar=True,
-    display_mode="ortho",
-    annotate=False
-)
+    f = plotting.plot_connectome(
+        adjacency_matrix=nx.to_numpy_array(G, weight="weight"),
+        node_coords=coords,
+        node_color='black',
+        node_size=5,
+        edge_threshold="1%",
+        edge_cmap="bwr",
+        colorbar=True,
+        display_mode="ortho",
+        annotate=False
+    )
 
 plotting.show()
 f.savefig(
