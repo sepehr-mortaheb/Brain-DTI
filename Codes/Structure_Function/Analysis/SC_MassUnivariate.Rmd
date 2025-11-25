@@ -10,29 +10,20 @@ library(openxlsx)
 
 ```{r} 
 # Reading the main data frame
-res_dir = '/Users/sepehrmortaheb/MyDrive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/Analysis/results/SC/'
-df <- read.xlsx(
+res_dir = '/Users/sepehrmortaheb/MyDrive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/Analysis/results/SCH100/SC/'
+df <- read.csv(
   file.path(
     res_dir, 
-    'SC_Cosmonauts_SCH100.xlsx'
+    'SC_Cosmonauts.csv'
   )
 )
 
 # Filtering the dataframe to keep the pre and post values of the first flight
 
-# subjects to exclude
-excluded_subjects <- c(
-  "sub-cosmonaut13", 
-  "sub-cosmonaut15", 
-  "sub-cosmonaut16",
-  "sub-cosmonaut26"
-) 
-
 df_filtered <- df %>%
   filter(
     flight == 'f1', 
     time %in% c("pre2", "post"),
-    !subject %in% excluded_subjects
   ) %>%
   mutate(
     time = factor(
@@ -74,6 +65,11 @@ model_results <- df_filtered %>%
 # Apply FDR correction
 #model_results <- model_results %>%
 model_results['p_fdr'] = p.adjust(model_results$p.value, method='fdr')
+model_results['p_holm'] = p.adjust(model_results$p.value, method='holm')
+model_results['p_hochberg'] = p.adjust(model_results$p.value, method='hochberg')
+model_results['p_hommel'] = p.adjust(model_results$p.value, method='hommel')
+model_results['p_bonferroni'] = p.adjust(model_results$p.value, method='bonferroni')
+
 
 # Arrange by significance
 #model_results["abs_est"] = abs(model_results["estimate"])
@@ -91,7 +87,7 @@ write.xlsx(
   model_results_clean, 
   file.path(
     res_dir, 
-    "MassUnivariate/SC_MassUnivariate_LMM_SCH100.xlsx"
+    "MassUnivariate/SC_MassUnivariate_LMM.xlsx"
   ),
   overwrite = TRUE
 )

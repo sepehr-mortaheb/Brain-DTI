@@ -38,7 +38,9 @@ sns.swarmplot(
     x='group',
     y='age', 
     data=df,
-    ax=ax
+    ax=ax,
+    hue='group',
+    hue_order=['cosm', 'cont']
 )
 ax.grid(True)
 ax.set_xlabel('Group', size=15)
@@ -245,9 +247,12 @@ exc_list = [
     'sub-cosmonaut15',
     'sub-cosmonaut16',
     'sub-cosmonaut26',
+    'sub-cosmonaut19',
+    'sub-cosmonaut20',
     'sub-control16',
     'sub-control18',
     'sub-control19',
+    'sub-control22'
 ]
 for sub in exc_list:
     df = df[df.subject!=sub]
@@ -269,7 +274,9 @@ sns.swarmplot(
     x='group',
     y='age', 
     data=df,
-    ax=ax
+    ax=ax,
+    hue='group',
+    hue_order=['cosm', 'cont']
 )
 ax.grid(True)
 ax.set_xlabel('Group', size=15)

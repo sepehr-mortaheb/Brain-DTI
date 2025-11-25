@@ -64,7 +64,7 @@ for sub in subjects:
                     dftmp['val'] = [val]
                     df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_csv(op.join(res_dir, f'SC/SC_Cosmonauts_{atlas}.csv'))
+df.to_csv(op.join(res_dir, f'{atlas}/SC/SC_Cosmonauts.csv'))
 
 df = pd.DataFrame([])
 for sub in subjects:
@@ -90,7 +90,7 @@ for sub in subjects:
                     dftmp['val'] = [val]
                     df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_csv(op.join(res_dir, f'SC/SC_Controls_{atlas}.csv'))
+df.to_csv(op.join(res_dir, f'{atlas}/SC/SC_Controls.csv'))
 
 
 #%% Post vs Pre analysis plots
@@ -131,7 +131,7 @@ for i, region_label in enumerate(region_ids, 1):
 # Reading the stat results 
 file_addr = op.join(
     res_dir,
-    f'SC/MassUnivariate/SC_MassUnivariate_LMM_{atlas}.xlsx'
+    f'{atlas}/SC/MassUnivariate/SC_MassUnivariate_LMM.xlsx'
 )
 df = pd.read_excel(file_addr)
 
@@ -190,13 +190,13 @@ else:
 plotting.show()
 f.savefig(
     op.join(
-        res_dir, f'SC/MassUnivariate/SC_Post-Pre_{atlas}.png'
+        res_dir, f'{atlas}/SC/MassUnivariate/SC_Post-Pre_{atlas}.png'
     ),
     dpi=300
 )
 f.savefig(
     op.join(
-        res_dir, f'SC/MassUnivariate/SC_Post-Pre_{atlas}.pdf'
+        res_dir, f'{atlas}/SC/MassUnivariate/SC_Post-Pre_{atlas}.pdf'
     ),
     dpi=300
 )

@@ -236,7 +236,7 @@ savemat(
 R = len(eigenValues)
 wzc = np.zeros(R)
 for r in range(R):
-    u = eigenVectors[:, r];
+    u = eigenVectors[:, r]
     summ = 0; 
     for i in range(R-1):
         for j in range(i+1, R):
