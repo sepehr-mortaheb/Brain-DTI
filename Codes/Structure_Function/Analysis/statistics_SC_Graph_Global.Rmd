@@ -1,0 +1,188 @@
+```{r}
+library(lme4)
+library(lmerTest)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(broom.mixed)
+library(openxlsx)
+```
+
+```{r} 
+# Reading the main data frame with thresholds 
+res_dir = '/Users/sepehrmortaheb/MyDrive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/Analysis/results/SCH100/SC/Graph'
+
+df <- read.xlsx(
+  file.path(
+    res_dir, 
+    'Graph_metrics_global_Cosmonauts_SCH100_bin-False_norm-True.xlsx'
+  )
+)
+
+df_avg <- read.xlsx(
+  file.path(
+    res_dir, 
+    'Graph_metrics_global_Cosmonauts_avg_SCH100_bin-False_norm-True.xlsx'
+  )
+)
+
+# Filtering the dataframe to keep the pre and post values of the first flight
+
+df_filtered <- df %>%
+  filter(
+    flight == 'f1', 
+    time %in% c("pre2", "post"),
+  ) %>%
+  mutate(
+    time = factor(
+      time, 
+      levels = c("pre2", "post")
+    ),
+    subject = as.factor(subject)
+  )
+
+df_avg_filtered <- df_avg %>%
+  filter(
+    time %in% c("pre2", "post"),
+  ) %>%
+  mutate(
+    time = factor(
+      time, 
+      levels = c("pre2", "post")
+    )
+  )
+```
+
+```{r}
+
+# Analysis based on each threshold 
+
+metrics <- c(
+  "global_efficiency", "density", "transitivity",
+  "char_path_length", "modularity"
+)
+
+wb <- createWorkbook()
+
+# ---- Loop over metrics and thresholds ----
+for (metric in metrics) {
+  metric_results <- data.frame()
+  
+  for (th in unique(df_filtered$threshold)) {
+    data_sub <- df_filtered %>% filter(threshold == th)
+    data_sub$metric_scaled <- scale(data_sub[[metric]])
+    
+    # Fit LMM
+    formula_str <- as.formula( "metric_scaled ~ time + (1 | subject)")
+    model <- tryCatch({
+      lmer(formula, data = data_sub,
+           control = lmerControl(optimizer = "bobyqa",
+                                 optCtrl = list(maxfun = 1e5)))
+    }, error = function(e) return(NULL))
+
+    if (!is.null(model)) {
+      term_row <- tidy(model) %>% filter(term == "timepost")
+      singular_flag <- isSingular(model)
+
+      if (nrow(term_row) > 0) {
+        metric_results <- rbind(metric_results, data.frame(
+          threshold = th,
+          estimate = term_row$estimate,
+          std_error = term_row$std.error,
+          t_value = term_row$statistic,
+          p_value = term_row$p.value,
+          singular = singular_flag
+        ))
+      }
+    } else {
+      # Model failed to converge or fit
+      metric_results <- rbind(metric_results, data.frame(
+        threshold = th,
+        estimate = NA,
+        std_error = NA,
+        t_value = NA,
+        p_value = NA,
+        singular = TRUE
+      ))
+    }
+  }
+  
+  if (nrow(metric_results)>0) {
+    metric_results['p_fdr'] = p.adjust(metric_results$p_value, method='fdr')
+    metric_results['p_holm'] = p.adjust(metric_results$p_value, method='holm')
+    metric_results['p_hochberg'] = p.adjust(metric_results$p_value, method='hochberg')
+    metric_results['p_hommel'] = p.adjust(metric_results$p_value, method='hommel')
+    metric_results['p_bonferroni'] = p.adjust(metric_results$p_value, method='bonferroni')
+  }
+  
+  addWorksheet(wb, sheetName = metric)
+  writeData(wb, sheet = metric, metric_results)
+}
+
+# ---- Save to Excel ----
+saveWorkbook(
+  wb,
+  file.path(
+    res_dir, 
+    "statistics_Graph_metrics_global_Cosmonauts_SCH100_bin_False.xlsx"
+  ),
+  overwrite = TRUE
+)
+
+```
+
+```{r}
+
+# Analysis of averaged data 
+
+metrics <- c(
+  "global_efficiency", "average_clustering", "density", "transitivity",
+  "char_path_length", "modularity", "mean_degree", "mean_strength",
+  "mean_betweenness", "mean_closeness", "mean_eigenvector"
+)
+
+wb <- createWorkbook()
+
+# ---- Loop over metrics and thresholds ----
+for (metric in metrics) {
+  metric_results <- data.frame
+  
+    # Fit LMM
+  formula_str <- as.formula(paste(metric, " ~ time + (1 | subject)"))
+  model <- lmer(formula_str, data = df_avg_filtered)
+  term_row <- tidy(model) %>% filter(term == "timepost")
+  if (nrow(term_row) > 0) {
+    metric_results <- data.frame(
+          estimate = term_row$estimate,
+          std_error = term_row$std.error,
+          t_value = term_row$statistic,
+          p_value = term_row$p.value
+        )
+      }
+  
+  if (nrow(metric_results)>0) {
+    metric_results['p_fdr'] = p.adjust(metric_results$p_value, method='fdr')
+    metric_results['p_holm'] = p.adjust(metric_results$p_value, method='holm')
+    metric_results['p_hochberg'] = p.adjust(metric_results$p_value, method='hochberg')
+    metric_results['p_hommel'] = p.adjust(metric_results$p_value, method='hommel')
+    metric_results['p_bonferroni'] = p.adjust(metric_results$p_value, method='bonferroni')
+  }
+  
+  addWorksheet(wb, sheetName = metric)
+  writeData(wb, sheet = metric, metric_results)
+}
+
+# ---- Save to Excel ----
+saveWorkbook(
+  wb,
+  file.path(
+    res_dir, 
+    "statistics_Graph_metrics_global_Cosmonauts_avg_SCH100_bin_False.xlsx"
+  ),
+  overwrite = TRUE
+)
+
+```
+
+
+

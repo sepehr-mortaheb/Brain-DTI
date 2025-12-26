@@ -4,6 +4,10 @@ import os.path as op
 import numpy as np 
 from scipy.io import loadmat, savemat
 from nilearn.connectome import ConnectivityMeasure
+import os
+import seaborn as sns
+import matplotlib.pylab as plt 
+from scipy.stats import zscore
 
 #%% Parameters and Directories Initialization
 
@@ -18,7 +22,7 @@ sessions = {sub:[ses for ses in sessions[sub] if ses.startswith('ses')] for sub 
 
 #%% Reading Cosmonauts' and Controls' RS time series and creating FC matrices 
 
-atlas = 'AAL' # SCH100, SCH400, AAL
+atlas = 'SCH100' # SCH100, SCH400, AAL
 
 if atlas=='SCH100':
     R = 100 
@@ -47,4 +51,23 @@ for sub in subjects:
                 op.join(data_dir, f'{sub}/{ses}/FC_{atlas}.mat'), 
                 {'FC':fc_matrix}
             )
-# %%
+
+# Controls 
+conn_estimator = ConnectivityMeasure(kind='correlation')
+for sub in subjects:
+    if sub.startswith('sub-control'):
+        print(sub)
+        for ses in sessions[sub]:
+            print(f'---- {ses}')
+            tp = ses.split('-')[1]
+
+            ts = loadmat(
+                op.join(data_dir, f'{sub}/{ses}/ts_{atlas}.mat')
+            )[f'ts_{atlas}']
+
+            fc_matrix = conn_estimator.fit_transform([ts])[0]
+
+            savemat(
+                op.join(data_dir, f'{sub}/{ses}/FC_{atlas}.mat'), 
+                {'FC':fc_matrix}
+            )

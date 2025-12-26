@@ -14,6 +14,7 @@ import os
 from nilearn import plotting, datasets, image
 from scipy.ndimage import center_of_mass
 import nibabel as nb
+from scipy.io import loadmat
 
 #%% Parameters and directories initialization 
 data_dir = '/Users/sepehrmortaheb/MyDrive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/Analysis/data_ts_sc/ROS'
@@ -38,28 +39,55 @@ elif atlas=='AAL':
 
 #%% Graph Global Metrics Estimation 
 
-norm = False
-
-# For Cosmonauts 
+atlas = 'SCH100' 
 
 df = pd.DataFrame([])
-for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5]:
+graph = 'absolute' # pos or absolute
+
+thresholds = [
+    0.25,
+    0.275,
+    0.3,
+    0.325,
+    0.35,
+    0.375,
+    0.4,
+    0.425,
+    0.45,
+    0.475,
+    0.5, 
+    0.525, 
+    0.55, 
+    0.575, 
+    0.6, 
+    0.625, 
+    0.65, 
+    0.675, 
+    0.7, 
+    0.725, 
+    0.75, 
+    0.775, 
+    0.8, 
+]
+
+for threshold in thresholds:
     print(f'Cosmonauts: th = {threshold}')
     for sub in subjects:
         if sub.startswith('sub-cosmonaut'):           
             for ses in sessions[sub]:
                 flight = ses.split('-')[1][0:2]
                 tp = ses.split('-')[1][2:]
-                if norm:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
-                        delimiter=','
-                    )
-                else:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}_nonorm.csv'), 
-                        delimiter=','
-                    )
+
+                adj_matrix = loadmat(
+                    op.join(data_dir, sub, ses, f'FC_{atlas}.mat')
+                )['FC']
+                np.fill_diagonal(adj_matrix, 0)
+
+                if graph=='pos':
+                    adj_matrix[adj_matrix < 0] = 0
+                elif graph=='absolute':
+                    adj_matrix = np.abs(adj_matrix)
+
                 # Keep top X% of weights
                 flat = adj_matrix[np.triu_indices_from(adj_matrix, k=1)]
                 thresh_val = np.percentile(flat, 100 - threshold * 100)
@@ -70,9 +98,6 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
 
                 # Remove isolated nodes
                 G.remove_nodes_from(list(nx.isolates(G)))
-
-                largest_cc = max(nx.connected_components(G), key=len)
-                G = G.subgraph(largest_cc).copy()
 
                 # Global metrics
                 dftmp = pd.DataFrame({})
@@ -95,27 +120,26 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
 
                 df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Cosmonauts_{atlas}_norm-{norm}.xlsx'))
-
-# For Controls 
+df.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Cosmonauts_{atlas}_graph-{graph}.xlsx'))
 
 df = pd.DataFrame([])
-for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5]:
+for threshold in thresholds:
     print(f'Controls: th = {threshold}')
     for sub in subjects:
         if sub.startswith('sub-control'):
             for ses in sessions[sub]:
                 tp = ses.split('-')[1]
-                if norm:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
-                        delimiter=','
-                    )
-                else:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}_nonorm.csv'), 
-                        delimiter=','
-                    )
+
+                adj_matrix = loadmat(
+                    op.join(data_dir, sub, ses, f'FC_{atlas}.mat')
+                )['FC']
+                np.fill_diagonal(adj_matrix, 0)
+
+                if graph=='pos':
+                    adj_matrix[adj_matrix < 0] = 0
+                elif graph=='absolute':
+                    adj_matrix = np.abs(adj_matrix)
+
                 # Keep top X% of weights
                 flat = adj_matrix[np.triu_indices_from(adj_matrix, k=1)]
                 thresh_val = np.percentile(flat, 100 - threshold * 100)
@@ -126,9 +150,6 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
 
                 # Remove isolated nodes
                 G.remove_nodes_from(list(nx.isolates(G)))
-
-                largest_cc = max(nx.connected_components(G), key=len)
-                G = G.subgraph(largest_cc).copy()
 
                 # Global metrics
                 dftmp = pd.DataFrame({})
@@ -150,16 +171,16 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
 
                 df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Controls_{atlas}_norm-{norm}.xlsx'))
+df.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Controls_{atlas}_graph-{graph}.xlsx'))
 
 
 # %% Visualization of Global Metrics 
 
 atlas = 'SCH100'
-norm = False
+graph = 'absolute'
 
 # For Cosmonauts 
-df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Cosmonauts_{atlas}_norm-{norm}.xlsx'))
+df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Cosmonauts_{atlas}_graph-{graph}.xlsx'))
 
 df_cosm_filt = df_cosm
 df_cosm_filt = df_cosm_filt[df_cosm_filt.flight=='f1']
@@ -191,8 +212,7 @@ for subject in np.unique(df_cosm_filt.subject):
                 dftmp['auc'] = [auc_val]
                 df_cosm_filt_auc = pd.concat((df_cosm_filt_auc, dftmp), ignore_index=True)
             
-
-df_cosm_filt_auc.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Cosmonauts_auc_{atlas}_norm-{norm}.xlsx'))
+df_cosm_filt_auc.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Cosmonauts_auc_{atlas}_graph-{graph}.xlsx'))
 
 for metric in metrics:
     fig, ax = plt.subplots(1, 2, figsize=(17, 5))
@@ -205,8 +225,33 @@ for metric in metrics:
         hue_order=['pre2', 'post'],
         ax=ax[0],
     )
-    ths = [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5]
-    ax[0].set_xticklabels(ths, rotation=45)
+
+    thresholds = [
+        0.25,
+        0.275,
+        0.3,
+        0.325,
+        0.35,
+        0.375,
+        0.4,
+        0.425,
+        0.45,
+        0.475,
+        0.5, 
+        0.525, 
+        0.55, 
+        0.575, 
+        0.6, 
+        0.625, 
+        0.65, 
+        0.675, 
+        0.7, 
+        0.725, 
+        0.75, 
+        0.775, 
+        0.8, 
+    ]
+    ax[0].set_xticklabels(thresholds, rotation=45)
     ax[0].set_xlabel('Threshold', size=15)
     ax[0].set_ylabel(metric, size=12)
     ax[0].grid(True)
@@ -242,7 +287,6 @@ for metric in metrics:
     )
 
     ax[1].grid(True)
-
     ax[1].set_title('Area Under the Curve', size=12)
     ax[1].set_xlabel('', size=15)
     ax[1].set_ylabel('AUC', size=12)
@@ -250,12 +294,12 @@ for metric in metrics:
     fig.suptitle(metric, size=15)
 
     fig.savefig(
-        op.join(res_dir, f'{atlas}/SC/Graph/Graph_{metric}_Cosmonauts_{atlas}_norm-{norm}.pdf'),
+        op.join(res_dir, f'{atlas}/FC/Graph/Graph_{metric}_Cosmonauts_{atlas}_graph-{graph}.pdf'),
         dpi=300,
         bbox_inches='tight'
     )
     fig.savefig(
-        op.join(res_dir, f'{atlas}/SC/Graph/Graph_{metric}_Cosmonauts_{atlas}_norm-{norm}.png'),
+        op.join(res_dir, f'{atlas}/FC/Graph/Graph_{metric}_Cosmonauts_{atlas}_graph-{graph}.png'),
         dpi=300,
         bbox_inches='tight'
     )
@@ -264,10 +308,9 @@ for metric in metrics:
 
 # Statistics per threshold value 
 atlas = 'SCH100'
-binary = False
-norm = False
+graph = 'absolute'
 
-df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Cosmonauts_{atlas}_norm-{norm}.xlsx'))
+df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Cosmonauts_{atlas}_graph-{graph}.xlsx'))
 
 df_cosm_filt = df_cosm
 df_cosm_filt = df_cosm_filt[df_cosm_filt.flight=='f1']
@@ -276,14 +319,38 @@ df_cosm_filt = df_cosm_filt.reset_index()
 df_cosm_filt = df_cosm_filt.drop(axis='columns', labels=['index'])
 df_cosm_filt['time'] = pd.Categorical(df_cosm_filt['time'], categories=['pre2', 'post'])
 
-metric = 'modularity' # Possible metrics: 
+metric = 'global_efficiency' # Possible metrics: 
                              # 'global_efficiency'
                              # 'char_path_length'
                              # 'density'
                              # 'transitivity'
                              # 'modularity
 
-thresholds = [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5]
+thresholds = [
+    0.25,
+    0.275,
+    0.3,
+    0.325,
+    0.35,
+    0.375,
+    0.4,
+    0.425,
+    0.45,
+    0.475,
+    0.5, 
+    0.525, 
+    0.55, 
+    0.575, 
+    0.6, 
+    0.625, 
+    0.65, 
+    0.675, 
+    0.7, 
+    0.725, 
+    0.75, 
+    0.775, 
+    0.8, 
+]
 results = []
 for th in thresholds:
     df_th = df_cosm_filt[df_cosm_filt['threshold'] == th]
@@ -293,11 +360,6 @@ for th in thresholds:
     coef = result.params.get("time[T.post]")
     pval = result.pvalues.get("time[T.post]")
     tval = result.tvalues.get("time[T.post]")
-
-    if coef <1e-10:
-        coef = 0
-        pval = 1
-        tval = 0
 
     results.append({
         "threshold": th,
@@ -319,10 +381,9 @@ df_results
 #%% statistics on the AUC value
 #   
 atlas = 'SCH100'
-binary = False
-norm = False
+graph = 'absolute'
 
-df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Cosmonauts_auc_{atlas}_norm-{norm}.xlsx'))
+df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Cosmonauts_auc_{atlas}_graph-{graph}.xlsx'))
 
 df_cosm_filt = df_cosm
 df_cosm_filt = df_cosm_filt[(df_cosm_filt.time=='pre2') | (df_cosm_filt.time=='post')]
@@ -356,12 +417,35 @@ df_results
 
 #%% Nodal Metrics 
 
-atlas = 'SCH100'
-norm = False
-
 df = pd.DataFrame([])
+graph='absolute'
 
-for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5]:
+thresholds = [
+    0.25,
+    0.275,
+    0.3,
+    0.325,
+    0.35,
+    0.375,
+    0.4,
+    0.425,
+    0.45,
+    0.475,
+    0.5, 
+    0.525, 
+    0.55, 
+    0.575, 
+    0.6, 
+    0.625, 
+    0.65, 
+    0.675, 
+    0.7, 
+    0.725, 
+    0.75, 
+    0.775, 
+    0.8, 
+]
+for threshold in thresholds:
     print(f'Cosmonauts: th = {threshold}')
     for sub in subjects:
         if sub.startswith('sub-cosmonaut'):           
@@ -369,16 +453,16 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
                 flight = ses.split('-')[1][0:2]
                 tp = ses.split('-')[1][2:]
 
-                if norm:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
-                        delimiter=','
-                    )
-                else:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}_nonorm.csv'), 
-                        delimiter=','
-                    )
+                adj_matrix = loadmat(
+                    op.join(data_dir, sub, ses, f'FC_{atlas}.mat')
+                )['FC']
+                np.fill_diagonal(adj_matrix, 0)
+
+                if graph=='pos':
+                    adj_matrix[adj_matrix < 0] = 0
+                elif graph=='absolute':
+                    adj_matrix = np.abs(adj_matrix)
+
                 # Keep top X% of weights
                 flat = adj_matrix[np.triu_indices_from(adj_matrix, k=1)]
                 thresh_val = np.percentile(flat, 100 - threshold * 100)
@@ -390,7 +474,6 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
                 # Remove isolated nodes
                 G.remove_nodes_from(list(nx.isolates(G)))
 
-                # Node-level metrics (summarized by mean)
                 clustering = nx.clustering(G, weight="weight")
                 between = nx.betweenness_centrality(G, weight="weight")
                 close = nx.closeness_centrality(G, distance="weight")               
@@ -410,26 +493,25 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
 
                     df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Cosmonauts_{atlas}_norm-{norm}.xlsx'))
+df.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Cosmonauts_{atlas}_graph-{graph}.xlsx'))
 
 df = pd.DataFrame([])
-for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5]:
+for threshold in thresholds:
     print(f'Controls: th = {threshold}')
     for sub in subjects:
         if sub.startswith('sub-control'):
             for ses in sessions[sub]:
                 tp = ses.split('-')[1]
 
-                if norm:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
-                        delimiter=','
-                    )
-                else:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}_nonorm.csv'), 
-                        delimiter=','
-                    )
+                adj_matrix = loadmat(
+                    op.join(data_dir, sub, ses, f'FC_{atlas}.mat')
+                )['FC']
+                np.fill_diagonal(adj_matrix, 0)
+
+                if graph=='pos':
+                    adj_matrix[adj_matrix < 0] = 0
+                elif graph=='absolute':
+                    adj_matrix = np.abs(adj_matrix)
 
                 # Keep top X% of weights
                 flat = adj_matrix[np.triu_indices_from(adj_matrix, k=1)]
@@ -461,17 +543,15 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
 
                     df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Controls_{atlas}_norm-{norm}.xlsx'))
-
-
+df.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Controls_{atlas}_graph-{graph}.xlsx'))
 
 #%% Calculation of Nodal Metrics AUC 
 
 atlas = 'SCH100'
-norm = False
+graph = 'absolute'
 
 # For Cosmonauts 
-df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Cosmonauts_{atlas}_norm-{norm}.xlsx'))
+df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Cosmonauts_{atlas}_graph-{graph}.xlsx'))
 
 df_cosm_filt = df_cosm
 df_cosm_filt = df_cosm_filt[df_cosm_filt.flight=='f1']
@@ -488,6 +568,7 @@ metrics = [
 df_cosm_filt_auc = pd.DataFrame([])
 
 for subject in np.unique(df_cosm_filt.subject):
+    print(subject)
     for reg in np.unique(df_cosm_filt.region):
         for time in np.unique(df_cosm_filt.time):
             for metric in metrics:
@@ -504,17 +585,17 @@ for subject in np.unique(df_cosm_filt.subject):
                     df_cosm_filt_auc = pd.concat((df_cosm_filt_auc, dftmp), ignore_index=True)
                 
 
-df_cosm_filt_auc.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Cosmonauts_auc_{atlas}_norm-{norm}.xlsx'))
+df_cosm_filt_auc.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Cosmonauts_auc_{atlas}_graph-{graph}.xlsx'))
 
 
 #%% Statistics on the nodal metrics AUC 
 
 atlas = 'SCH100'
 R = 100
-norm = False
+graph = 'absolute'
 
 # For Cosmonauts 
-df = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Cosmonauts_auc_{atlas}_norm-{norm}.xlsx'))
+df = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Cosmonauts_auc_{atlas}_graph-{graph}.xlsx'))
 df['time'] = pd.Categorical(df['time'], categories=['pre2', 'post'])
 
 metrics = [
@@ -556,13 +637,13 @@ for metric in metrics:
     df_final = pd.concat((df_final, df_results), ignore_index=True)
 
 
-df_final.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Statistics_Cosmomnauts_nodalAUC_norm-{norm}.xlsx'), index=False)
+df_final.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Statistics_Cosmomnauts_nodalAUC_graph-{graph}.xlsx'), index=False)
 
 #%% Visualization of the results 
 
 atlas = 'SCH100'
-norm = False
-metric = 'clustering'
+graph = 'absolute'
+metric = 'closeness'
 
 # Reading the atlas information 
 if atlas == 'SCH100':
@@ -600,7 +681,7 @@ for i, region_label in enumerate(region_ids, 1):
 
 file_addr = op.join(
     res_dir,
-    f'{atlas}/SC/Graph/Statistics_Cosmomnauts_nodalAUC_norm-{norm}.xlsx'
+    f'{atlas}/FC/Graph/Statistics_Cosmomnauts_nodalAUC_graph-{graph}.xlsx'
 )
 
 df = pd.read_excel(file_addr)
@@ -631,7 +712,7 @@ else:
         img,
         op.join(
             res_dir,
-            f'{atlas}/SC/Graph/Statistics_Cosmomnauts_nodalAUC_{metric}_norm-{norm}.nii'
+            f'{atlas}/FC/Graph/Statistics_Cosmomnauts_nodalAUC_{metric}_graph-{graph}.nii'
         )
     )
 

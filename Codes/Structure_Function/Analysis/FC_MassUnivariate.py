@@ -33,10 +33,9 @@ sessions = {sub:np.sort(os.listdir(op.join(data_dir, sub))) for sub in subjects}
 # to remove .DS files in mac
 sessions = {sub:[ses for ses in sessions[sub] if ses.startswith('ses')] for sub in subjects}
 
-#%% Reading Cosmonauts' and Controls' SC files and dataframe creation
+#%% Reading Cosmonauts' and Controls' FC files and dataframe creation
 
 atlas = 'SCH100' # SCH100, SCH400, AAL
-norm = False # SIFT weights normalized by the sum of regions volumes: True or False 
 
 if atlas=='SCH100':
     R = 100 
@@ -53,21 +52,15 @@ for sub in subjects:
             print(f'---- {ses}')
             flight = ses.split('-')[1][0:2]
             tp = ses.split('-')[1][2:]
-            if norm:
-                sc = np.loadtxt(
-                    op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
-                    delimiter=','
-                )
-            else:
-                sc = np.loadtxt(
-                    op.join(data_dir, sub, ses, f'SC_{atlas}_nonorm.csv'), 
-                    delimiter=','
-                )
+
+            fc = loadmat(
+                op.join(data_dir, sub, ses, f'FC_{atlas}.mat'), 
+            )['FC']
 
             for row in range(R):
                 for col in range(row+1,R):
                     edge = f'R{row+1}-R{col+1}'
-                    val = sc[row, col]
+                    val = fc[row, col]
                     dftmp = pd.DataFrame([])
                     dftmp['subject'] = [sub]
                     dftmp['flight'] = [flight]
@@ -76,8 +69,7 @@ for sub in subjects:
                     dftmp['val'] = [val]
                     df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_csv(op.join(res_dir, f'{atlas}/SC/MassUnivariate/SC_Cosmonauts_norm-{norm}.csv'))
-
+df.to_csv(op.join(res_dir, f'{atlas}/FC/MassUnivariate/FC_Cosmonauts.csv'))
 
 df = pd.DataFrame([])
 for sub in subjects:
@@ -86,21 +78,15 @@ for sub in subjects:
         for ses in sessions[sub]:
             print(f'---- {ses}')
             tp = ses.split('-')[1]
-            if norm:
-                sc = np.loadtxt(
-                    op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
-                    delimiter=','
-                )
-            else:
-                sc = np.loadtxt(
-                    op.join(data_dir, sub, ses, f'SC_{atlas}_nonorm.csv'), 
-                    delimiter=','
-                )
+
+            fc = loadmat(
+                op.join(data_dir, sub, ses, f'FC_{atlas}.mat'), 
+            )['FC']
 
             for row in range(R):
                 for col in range(row+1,R):
                     edge = f'R{row+1}-R{col+1}'
-                    val = sc[row, col]
+                    val = fc[row, col]
                     dftmp = pd.DataFrame([])
                     dftmp['subject'] = [sub]
                     dftmp['time'] = [tp]
@@ -108,27 +94,26 @@ for sub in subjects:
                     dftmp['val'] = [val]
                     df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_csv(op.join(res_dir, f'{atlas}/SC/MassUnivariate/SC_Controls_norm-{norm}.csv'))
+df.to_csv(op.join(res_dir, f'{atlas}/FC/MassUnivariate/FC_Controls.csv'))
 
 #%% Statistical Analysis 
 
 # For cosmonauts 
 
 atlas = 'SCH100'
-norm = False
 
-df = pd.read_csv(op.join(res_dir, f'{atlas}/SC/MassUnivariate/SC_Cosmonauts_norm-{norm}.csv'))
+df = pd.read_csv(op.join(res_dir, f'{atlas}/FC/MassUnivariate/FC_Cosmonauts.csv'))
 
 df = df[(df['flight'] == 'f1') & (df['time'].isin(['pre2', 'post']))].copy()
 df['time'] = pd.Categorical(df['time'], categories=['pre2', 'post'])
-df['log_val'] = np.log2(df['val']+1)
+df['fish_val'] = np.arctanh(df['val'])
 
 results = []
 for edge in tqdm(df['edge'].unique(), desc="Running LMMs per edge"):
 
     df_edge = df[df['edge'] == edge]
 
-    model = smf.mixedlm("log_val ~ time", df_edge, groups=df_edge["subject"])
+    model = smf.mixedlm("fish_val ~ time", df_edge, groups=df_edge["subject"])
     result = model.fit(reml=False)
 
     coef = result.params.get("time[T.post]", float("nan"))
@@ -152,15 +137,14 @@ df_results.loc[valid_mask, 'p_fdr'] = corrected_pvals
 df_results['significant'] = df_results['p_fdr'] < 0.05
 
 
-df_results.to_excel(op.join(res_dir, f'{atlas}/SC/MassUnivariate/Statistics_Cosmomnauts_LMM_norm-{norm}.xlsx'), index=False)
+df_results.to_excel(op.join(res_dir, f'{atlas}/FC/MassUnivariate/FC_MassUnivariate_LMM.xlsx'), index=False)
 
 
 #%% Plotting Results
 
 atlas = 'SCH100'
-norm = False
-# Reading the atlas information 
 
+# Reading the atlas information 
 if atlas == 'SCH100':
     atlas_file = datasets.fetch_atlas_schaefer_2018(
         n_rois=100, 
@@ -194,11 +178,9 @@ for i, region_label in enumerate(region_ids, 1):
 
 
 # Reading the stat results 
-
-
 file_addr = op.join(
     res_dir,
-    f'{atlas}/SC/MassUnivariate/Statistics_Cosmonauts_LMM_norm-{norm}.xlsx'
+    f'{atlas}/FC/MassUnivariate/FC_MassUnivariate_LMM.xlsx'
 )
 
 df = pd.read_excel(file_addr)
@@ -250,20 +232,21 @@ if len(sig_edges) == 0:
 
 else:
     sig_edges[["node1", "node2"]] = sig_edges["edge"].str.split("-", expand=True)
+    sig_edges['node11'] = [f'R{int(i[1:])+1}' for i in sig_edges['node1']]
+    sig_edges['node22'] = [f'R{int(i[1:])+1}' for i in sig_edges['node2']]
     sig_edges = sig_edges[
-        sig_edges["node1"].isin(region_coords) & sig_edges["node2"].isin(region_coords)
+        sig_edges["node11"].isin(region_coords) & sig_edges["node22"].isin(region_coords)
     ]
     # Graph Creation
     A = np.zeros((100, 100))
     for _, row in sig_edges.iterrows():
-        n1, n2 = int(row["node1"][1:])-1, int(row["node2"][1:])-1
+        n1, n2 = int(row["node11"][1:])-1, int(row["node22"][1:])-1
         weight = row["beta"]
         A[n1, n2] = weight
 
     # Plotting the Graph on the Brain Atlas 
     coords = [region_coords[n] for n in region_ids]
 
-    
     view = plotting.view_connectome(
         A, 
         coords, 
@@ -273,7 +256,6 @@ else:
         linewidth=5
     )
     view.open_in_browser()
-
 
 #%% Plot Circular Graph
 
@@ -287,7 +269,7 @@ fig, ax = plt.subplots(figsize=(15, 15), facecolor='white', subplot_kw=dict(pola
 
 A = np.zeros((100, 100))
 for _, row in sig_edges.iterrows():
-    n1, n2 = int(row["node1"][1:])-1, int(row["node2"][1:])-1
+    n1, n2 = int(row["node11"][1:])-1, int(row["node22"][1:])-1
     weight = row["beta"]
     A[n1, n2] = weight
     A[n2, n1] = weight
@@ -302,8 +284,8 @@ plot_connectivity_circle(
     title="",
     ax=ax,
     linewidth=2,
-    vmin=-0.8, 
-    vmax=0.8, 
+    vmin=-0.26, 
+    vmax=0.26, 
     colorbar=True,
     colormap='coolwarm',
     fontsize_names = 0,
@@ -315,14 +297,14 @@ fig.tight_layout()
 fig.savefig(
     op.join(
         res_dir,
-        f'{atlas}/SC/MassUnivariate/Statistics_Cosmonauts_LMM_norm-{norm}.pdf'
+        f'{atlas}/FC/MassUnivariate/Statistics_Cosmonauts_LMM.pdf'
     ),
     dpi=300
 )
 fig.savefig(
     op.join(
         res_dir,
-        f'{atlas}/SC/MassUnivariate/Statistics_Cosmonauts_LMM_norm-{norm}.png'
+        f'{atlas}/FC/MassUnivariate/Statistics_Cosmonauts_LMM.png'
     ),
     dpi=300
 )
@@ -330,13 +312,15 @@ fig.savefig(
 #%% Network Analysis 
 
 atlas = 'SCH100'
-norm = False
 
-df = pd.read_csv(op.join(res_dir, f'{atlas}/SC/MassUnivariate/SC_Cosmonauts_norm-{norm}.csv'))
+df = pd.read_csv(op.join(res_dir, f'{atlas}/FC/MassUnivariate/FC_Cosmonauts.csv'))
 
 df = df[(df['flight'] == 'f1') & (df['time'].isin(['pre2', 'post']))].copy()
-df['log_val'] = np.log2(df['val']+1)
+df['fish_val'] = np.arctanh(df['val'])
 df[['node1', 'node2']] = df['edge'].str.split("-", expand=True)
+df['node11'] = [f'R{int(i[1:])+1}' for i in df['node1']]
+df['node22'] = [f'R{int(i[1:])+1}' for i in df['node2']]
+    
 
 networks = {
         'R1':'Vis',
@@ -441,8 +425,8 @@ networks = {
         'R100':'DMN'
 }
 
-net1 = [networks[i] for i in list(df['node1'])]
-net2 = [networks[i] for i in list(df['node2'])]
+net1 = [networks[i] for i in list(df['node11'])]
+net2 = [networks[i] for i in list(df['node22'])]
 
 df['net1'] = net1
 df['net2'] = net2
@@ -465,7 +449,7 @@ for subj in df['subject'].unique():
                     tmp.append(f'{net1}-{net2}')
                     tmp.append(f'{net2}-{net1}')
                     if len(df_net)>0:
-                        mean_val = np.mean(df_net['val'])
+                        mean_val = np.mean(df_net['fish_val'])
                         final.append({
                             "subject": subj,
                             "time": time,
@@ -475,12 +459,11 @@ for subj in df['subject'].unique():
                         })
 df_final = pd.DataFrame(final)
 
-df_final.to_excel(op.join(res_dir, f'{atlas}/SC/MassUnivariate/SC_Cosmonauts_networks_norm-{norm}.xlsx'))
+df_final.to_excel(op.join(res_dir, f'{atlas}/FC/MassUnivariate/FC_Cosmonauts_networks.xlsx'))
 
 #%% Statistics for networks
 
-df_final = pd.read_excel(op.join(res_dir, f'{atlas}/SC/MassUnivariate/SC_Cosmonauts_networks_norm-{norm}.xlsx'))
-df_final['log_val'] = np.log2(df_final['val']+1e-5)
+df_final = pd.read_excel(op.join(res_dir, f'{atlas}/FC/MassUnivariate/FC_Cosmonauts_networks.xlsx'))
 df_final['time'] = pd.Categorical(df_final['time'], categories=['pre2', 'post'])
 results = []
 for n in tmp[0:len(tmp)+1:2]:
@@ -541,6 +524,3 @@ sns.heatmap(
 )
 ax.set_xlabel('')
 ax.set_ylabel('')
-
-    
-

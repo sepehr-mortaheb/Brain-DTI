@@ -35,26 +35,25 @@ elif atlas=='AAL':
 
 #%% Calculate the Average SC for Cosmonauts 
 
-exc_list = [
-  "sub-cosmonaut13", 
-  "sub-cosmonaut15", 
-  "sub-cosmonaut16",
-  "sub-cosmonaut26"
-] 
-
+norm = False
 TSC=[]
 for sub in subjects:
     if sub.startswith('sub-cosmonaut'):
-        if sub not in exc_list:
-            for ses in sessions[sub]:
-                flight = ses.split('-')[1][0:2]
-                tp = ses.split('-')[1][2:]
-                if (flight=='f1') & (tp in ['pre2', 'post']):
+        for ses in sessions[sub]:
+            flight = ses.split('-')[1][0:2]
+            tp = ses.split('-')[1][2:]
+            if (flight=='f1') & (tp in ['pre2', 'post']):
+                if norm:
                     sc = np.loadtxt(
                         op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
                         delimiter=','
                     )
-                    TSC.append(sc)
+                else:
+                    sc = np.loadtxt(
+                        op.join(data_dir, sub, ses, f'SC_{atlas}_nonorm.csv'), 
+                        delimiter=','
+                    )
+                TSC.append(sc)
 TSC = np.array(TSC)
 SC = np.mean(
     TSC, 
@@ -62,7 +61,7 @@ SC = np.mean(
 )
 
 savemat(
-    op.join(res_dir, f'SC/Harmonics/SC_avg_cosm_{atlas}.mat'),
+    op.join(res_dir, f'{atlas}/SC/Harmonics/SC_avg_cosm_{atlas}_norm-{norm}.mat'),
     {'SC':SC}
 )
 
@@ -84,16 +83,18 @@ sns.heatmap(
 )
 
 fig.savefig(
-    op.join(res_dir, f'SC/Harmonics/SC_avg_cosm_{atlas}.pdf'),
+    op.join(res_dir, f'{atlas}/SC/Harmonics/SC_avg_cosm_{atlas}_norm-{norm}.pdf'),
     dpi=300
 )
 
 fig.savefig(
-    op.join(res_dir, f'SC/Harmonics/SC_avg_cosm_{atlas}.png'),
+    op.join(res_dir, f'{atlas}/SC/Harmonics/SC_avg_cosm_{atlas}_norm-{norm}.png'),
     dpi=300
 )
 
 #%% Normalized Laplacian Eigendecomposition 
+
+norm = False
 
 G = pygsp.graphs.Graph(SC)
 G.compute_laplacian('normalized') 
@@ -102,16 +103,16 @@ eigenValues = G.e
 eigenVectors = G.U
 
 savemat(
-    op.join(res_dir, f'SC/Harmonics/SC_avg_cosm_{atlas}_eigenvalues.mat'),
+    op.join(res_dir, f'{atlas}/SC/Harmonics/SC_avg_cosm_{atlas}_norm-{norm}_eigenvalues.mat'),
     {'eigVals': eigenValues}
 )
 
 savemat(
-    op.join(res_dir, f'SC/Harmonics/SC_avg_cosm_{atlas}_eigenvectors.mat'),
+    op.join(res_dir, f'{atlas}/SC/Harmonics/SC_avg_cosm_{atlas}_norm-{norm}_eigenvectors.mat'),
     {'eigVecs': eigenVectors}
 )
 
-#%% Plotting Eigne Values 
+#%% Plotting Eignevalues 
 
 fig, ax = plt.subplots(1, 1, figsize=(7,4))
 ax.plot(
@@ -124,11 +125,11 @@ ax.axvline(0, color='black', linewidth=1)
 ax.axhline(0, color='black', linewidth=1)
 ax.set_ylabel('Normalized Laplacian Eigenvalues', size=13)
 fig.savefig(
-    op.join(res_dir, f'SC/Harmonics/SC_avg_cosm_{atlas}_eigenvalues.pdf'),
+    op.join(res_dir, f'{atlas}/SC/Harmonics/SC_avg_cosm_{atlas}_norm-{norm}_eigenvalues.pdf'),
     dpi=300
 )
 fig.savefig(
-    op.join(res_dir, f'SC/Harmonics/SC_avg_cosm_{atlas}_eigenvalues.png'),
+    op.join(res_dir, f'{atlas}/SC/Harmonics/SC_avg_cosm_{atlas}_norm-{norm}_eigenvalues.png'),
     dpi=300
 )
 
@@ -143,7 +144,7 @@ for r in range(R):
     for i in range(R-1):
         for j in range(i+1, R):
             if u[i]*u[j] < 0:
-                summ += SC[i, j]>1
+                summ += SC[i, j]>10000
             wzc[r] = summ
 
 fig, ax = plt.subplots(
@@ -176,11 +177,11 @@ ax.set_xlabel(
     size='15'
 )
 fig.savefig(
-    op.join(res_dir, f'SC/Harmonics/SC_avg_cosm_{atlas}_zcr.pdf'), 
+    op.join(res_dir, f'{atlas}/SC/Harmonics/SC_avg_cosm_{atlas}_norm-{norm}_zcr.pdf'), 
     dpi=300
 )
 fig.savefig(
-    op.join(res_dir, f'SC/Harmonics/SC_avg_cosm_{atlas}_zcr.png'), 
+    op.join(res_dir, f'{atlas}/SC/Harmonics/SC_avg_cosm_{atlas}_norm-{norm}_zcr.png'), 
     dpi=300
 )
 
@@ -207,13 +208,30 @@ for i, region_label in enumerate(region_ids, 1):
     mni_coords = np.dot(affine[:3, :3], com) + affine[:3, 3]
     region_coords = region_coords + [mni_coords.tolist()]
 
-vec = eigenVectors[:, 1]
+which_eigvec = 96
+vec = eigenVectors[:, which_eigvec]
 th = np.max(np.abs(vec))
+fig, ax = plt.subplots(1, 1, figsize=(12,4))
 plotting.plot_markers(
     vec, 
     region_coords, 
     node_size=40,
     node_vmin=-th,
     node_vmax=th,
-    node_cmap='RdBu_r'
+    node_cmap='RdBu_r',
+    axes=ax
+)
+fig.savefig(
+    op.join(
+        res_dir, 
+        f'{atlas}/SC/Harmonics/SC_atlas-{atlas}_eigvec-{which_eigvec}_norm-{norm}.pdf',
+    ),
+    dpi=300
+)
+fig.savefig(
+    op.join(
+        res_dir, 
+        f'{atlas}/SC/Harmonics/SC_atlas-{atlas}_eigvec-{which_eigvec}_norm-{norm}.png',
+    ),
+    dpi=300
 )
