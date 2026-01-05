@@ -34,7 +34,7 @@ elif atlas=='SCH400':
 elif atlas=='AAL':
     R = 170
 
-# Reading the data for Cosmonauts 
+# Reading the data
 df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Cosmonauts_auc_{atlas}_norm-{norm}.xlsx'))
 df_ctrl = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Controls_auc_{atlas}_norm-{norm}.xlsx'))
 df_cosm['group'] = 'cosmonaut'
