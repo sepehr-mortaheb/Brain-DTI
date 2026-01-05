@@ -1,8 +1,8 @@
 #%% Importing 
 import os 
 import os.path as op 
-import numpy as np 
 import pandas as pd 
+import numpy as np 
 import statsmodels.formula.api as smf
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
@@ -23,18 +23,17 @@ sessions = {sub:[ses for ses in sessions[sub] if ses.startswith('ses')] for sub 
 #%% Statistical Analysis Type 1: Cosmonauts (Post vs Pre) using Linear Mixed Models
 
 atlas = 'SCH100'
-norm = False
 
-df = pd.read_csv(op.join(res_dir, f'{atlas}/SC/MassUnivariate/SC_Cosmonauts_norm-{norm}.csv'))
+df = pd.read_csv(op.join(res_dir, f'{atlas}/FC/MassUnivariate/FC_Cosmonauts.csv'))
 
 df = df[(df['flight'] == 'f1') & (df['time'].isin(['pre2', 'post']))].copy()
 df['time'] = pd.Categorical(df['time'], categories=['pre2', 'post'])
-df['log_val'] = np.log2(df['val']+1)
+df['fish_val'] = np.arctanh(df['val'])
 
 results = []
 for edge in tqdm(df['edge'].unique(), desc="Running LMMs per edge"):
     df_edge = df[df['edge'] == edge]
-    model = smf.mixedlm("log_val ~ time", df_edge, groups=df_edge["subject"])
+    model = smf.mixedlm("val ~ time", df_edge, groups=df_edge["subject"])
     result = model.fit(reml=False)
     coef = result.params.get("time[T.post]", float("nan"))
     pval = result.pvalues.get("time[T.post]", float("nan"))
@@ -54,23 +53,20 @@ corrected_pvals = multipletests(df_results.loc[valid_mask, 'p_value'], method='f
 df_results.loc[valid_mask, 'p_fdr'] = corrected_pvals
 df_results['significant'] = df_results['p_fdr'] < 0.05
 
-df_results.to_excel(op.join(res_dir, f'{atlas}/SC/MassUnivariate/Statistics_Cosmonauts_LMM_PostPre_norm-{norm}.xlsx'), index=False)
+df_results.to_excel(op.join(res_dir, f'{atlas}/FC/MassUnivariate/Statistics_Cosmonauts_LMM_PostPre.xlsx'), index=False)
 
 #%% Statistical Analysis Type 2: Controls (Post vs Pre) using Linear Mixed Models
-
 atlas = 'SCH100'
-norm = False
 
-df = pd.read_csv(op.join(res_dir, f'{atlas}/SC/MassUnivariate/SC_Controls_norm-{norm}.csv'))
-
+df = pd.read_csv(op.join(res_dir, f'{atlas}/FC/MassUnivariate/FC_Controls.csv'))
 df = df[df['time'].isin([1, 2])].copy()
 df['time'] = pd.Categorical(df['time'], categories=[1, 2])
-df['log_val'] = np.log2(df['val']+1)
+df['fish_val'] = np.arctanh(df['val'])
 
 results = []
 for edge in tqdm(df['edge'].unique(), desc="Running LMMs per edge"):
     df_edge = df[df['edge'] == edge]
-    model = smf.mixedlm("log_val ~ time", df_edge, groups=df_edge["subject"])
+    model = smf.mixedlm("val ~ time", df_edge, groups=df_edge["subject"])
     result = model.fit(reml=False)
     coef = result.params.get("time[T.2]", float("nan"))
     pval = result.pvalues.get("time[T.2]", float("nan"))
@@ -82,24 +78,19 @@ for edge in tqdm(df['edge'].unique(), desc="Running LMMs per edge"):
         "t_value": tval,
         "p_value": pval
     })
-
 df_results = pd.DataFrame(results)
 valid_mask = df_results['p_value'].notna()
 df_results['p_fdr'] = np.nan
 corrected_pvals = multipletests(df_results.loc[valid_mask, 'p_value'], method='fdr_bh')[1]
 df_results.loc[valid_mask, 'p_fdr'] = corrected_pvals
 df_results['significant'] = df_results['p_fdr'] < 0.05
-
-
-df_results.to_excel(op.join(res_dir, f'{atlas}/SC/MassUnivariate/Statistics_Controls_LMM_PostPre_norm-{norm}.xlsx'), index=False)
+df_results.to_excel(op.join(res_dir, f'{atlas}/FC/MassUnivariate/Statistics_Controls_LMM_PostPre.xlsx'), index=False)
 
 #%% Statistical Analysis Type 3: Cosmonauts (Post - Pre) vs Controls (Post - Pre) using Linear Mixed Models
-
 atlas = 'SCH100'
-norm = False
 
-df_cosm = pd.read_csv(op.join(res_dir, f'{atlas}/SC/MassUnivariate/SC_Cosmonauts_norm-{norm}.csv'))
-df_ctrl = pd.read_csv(op.join(res_dir, f'{atlas}/SC/MassUnivariate/SC_Controls_norm-{norm}.csv'))
+df_cosm = pd.read_csv(op.join(res_dir, f'{atlas}/FC/MassUnivariate/FC_Cosmonauts.csv'))
+df_ctrl = pd.read_csv(op.join(res_dir, f'{atlas}/FC/MassUnivariate/FC_Controls.csv'))
 
 df_cosm['group'] = 'cosmonaut'
 df_ctrl['group'] = 'control'
@@ -112,12 +103,12 @@ df = pd.concat((df_cosm, df_ctrl), ignore_index=True)
 
 df = df[(df['flight'] == 'f1') & (df['time'].isin(['pre2', 'post']))].copy()
 df['time'] = pd.Categorical(df['time'], categories=['pre2', 'post'])
-df['log_val'] = np.log2(df['val']+1)
+df['fish_val'] = np.arctanh(df['val'])
 
 results = []
 for edge in tqdm(df['edge'].unique(), desc="Running LMMs per edge"):
     df_edge = df[df['edge'] == edge]
-    model = smf.mixedlm("log_val ~ time*group", df_edge, groups=df_edge["subject"])
+    model = smf.mixedlm("val ~ time * group", df_edge, groups=df_edge["subject"])
     result = model.fit(reml=False)
     coef_time = result.params.get("time[T.post]", float("nan"))
     coef_group = result.params.get("group[T.cosmonaut]", float("nan"))
@@ -161,4 +152,4 @@ corrected_pvals = multipletests(df_results.loc[valid_mask, 'p_value_interaction'
 df_results.loc[valid_mask, 'p_fdr_interaction'] = corrected_pvals
 df_results['significant_interaction'] = df_results['p_fdr_interaction'] < 0.05
 
-df_results.to_excel(op.join(res_dir, f'{atlas}/SC/MassUnivariate/Statistics_Combined_LMM_PostPre_norm-{norm}.xlsx'), index=False)
+df_results.to_excel(op.join(res_dir, f'{atlas}/FC/MassUnivariate/Statistics_Combined_LMM_PostPre.xlsx'), index=False)

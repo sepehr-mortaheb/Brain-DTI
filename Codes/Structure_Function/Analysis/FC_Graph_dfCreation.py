@@ -7,6 +7,7 @@ import pandas as pd
 import networkx as nx 
 import community as community_louvain
 from sklearn.metrics import auc
+from scipy.io import loadmat
 
 #%% Parameters and directories initialization 
 data_dir = '/Users/sepehrleia/Library/CloudStorage/GoogleDrive-sepmori2023@gmail.com/My Drive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/Analysis/data_ts_sc/ROS'
@@ -23,7 +24,6 @@ sessions = {sub:[ses for ses in sessions[sub] if ses.startswith('ses')] for sub 
 #%% Graph Global Metrics Estimation 
 
 atlas = 'SCH100' # SCH100, SCH400, AAL
-norm = False
 
 if atlas=='SCH100':
     R = 100 
@@ -32,26 +32,53 @@ elif atlas=='SCH400':
 elif atlas=='AAL':
     R = 170
 
-# For Cosmonauts 
-
 df = pd.DataFrame([])
-for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5]:
+graph = 'pos' # pos or absolute
+
+thresholds = [
+    0.25,
+    0.275,
+    0.3,
+    0.325,
+    0.35,
+    0.375,
+    0.4,
+    0.425,
+    0.45,
+    0.475,
+    0.5, 
+    0.525, 
+    0.55, 
+    0.575, 
+    0.6, 
+    0.625, 
+    0.65, 
+    0.675, 
+    0.7, 
+    0.725, 
+    0.75, 
+    0.775, 
+    0.8, 
+]
+
+for threshold in thresholds:
     print(f'Cosmonauts: th = {threshold}')
     for sub in subjects:
         if sub.startswith('sub-cosmonaut'):           
             for ses in sessions[sub]:
                 flight = ses.split('-')[1][0:2]
                 tp = ses.split('-')[1][2:]
-                if norm:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
-                        delimiter=','
-                    )
-                else:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}_nonorm.csv'), 
-                        delimiter=','
-                    )
+
+                adj_matrix = loadmat(
+                    op.join(data_dir, sub, ses, f'FC_{atlas}.mat')
+                )['FC']
+                np.fill_diagonal(adj_matrix, 0)
+
+                if graph=='pos':
+                    adj_matrix[adj_matrix < 0] = 0
+                elif graph=='absolute':
+                    adj_matrix = np.abs(adj_matrix)
+
                 # Keep top X% of weights
                 flat = adj_matrix[np.triu_indices_from(adj_matrix, k=1)]
                 thresh_val = np.percentile(flat, 100 - threshold * 100)
@@ -83,7 +110,7 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
 
                 df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Cosmonauts_{atlas}_norm-{norm}.xlsx'))
+df.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Cosmonauts_{atlas}_graph-{graph}.xlsx'))
 
 # AUC calculation for Cosmonauts
 
@@ -101,8 +128,8 @@ for subject in np.unique(df.subject):
     for flight in np.unique(df.flight):
         for time in np.unique(df.time):
             for metric in metrics:
-                x = df[(df.flight == flight) & (df.time == time) & (df.subject == subject)]['threshold']
-                y = df[(df.flight == flight) & (df.time == time) & (df.subject == subject)][metric]
+                x = df[(df.time == time) & (df.subject == subject)]['threshold']
+                y = df[(df.time == time) & (df.subject == subject)][metric]
                 if len(x) > 1:
                     auc_val = auc(x, y)
                     dftmp = pd.DataFrame([])
@@ -112,29 +139,29 @@ for subject in np.unique(df.subject):
                     dftmp['metric'] = [metric]
                     dftmp['auc'] = [auc_val]
                     df_auc = pd.concat((df_auc, dftmp), ignore_index=True)
-                
 
-df_auc.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Cosmonauts_auc_{atlas}_norm-{norm}.xlsx'))
+df_auc.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Cosmonauts_auc_{atlas}_graph-{graph}.xlsx'))
 
-# For Controls 
+# For Controls
 
 df = pd.DataFrame([])
-for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5]:
+for threshold in thresholds:
     print(f'Controls: th = {threshold}')
     for sub in subjects:
         if sub.startswith('sub-control'):
             for ses in sessions[sub]:
                 tp = ses.split('-')[1]
-                if norm:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
-                        delimiter=','
-                    )
-                else:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}_nonorm.csv'), 
-                        delimiter=','
-                    )
+
+                adj_matrix = loadmat(
+                    op.join(data_dir, sub, ses, f'FC_{atlas}.mat')
+                )['FC']
+                np.fill_diagonal(adj_matrix, 0)
+
+                if graph=='pos':
+                    adj_matrix[adj_matrix < 0] = 0
+                elif graph=='absolute':
+                    adj_matrix = np.abs(adj_matrix)
+
                 # Keep top X% of weights
                 flat = adj_matrix[np.triu_indices_from(adj_matrix, k=1)]
                 thresh_val = np.percentile(flat, 100 - threshold * 100)
@@ -157,7 +184,7 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
                 dftmp['threshold'] = [threshold]
 
                 dftmp["global_efficiency"] = [nx.global_efficiency(G)]
-                dftmp["char_path_length"] = [nx.average_shortest_path_length(G, weight="weight")]
+                dftmp["char_path_length"] = [nx.average_shortest_path_length(G, weight="weight")]            
                 dftmp["density"] = [nx.density(G)]
                 dftmp["transitivity"] = [nx.transitivity(G)]
                 partition = community_louvain.best_partition(G, weight='weight')
@@ -165,7 +192,7 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
 
                 df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Controls_{atlas}_norm-{norm}.xlsx'))
+df.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Controls_{atlas}_graph-{graph}.xlsx'))
 
 # AUC calculation for Controls
 
@@ -194,18 +221,39 @@ for subject in np.unique(df.subject):
                 df_auc = pd.concat((df_auc, dftmp), ignore_index=True)
             
 
-df_auc.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Controls_auc_{atlas}_norm-{norm}.xlsx'))
+df_auc.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Controls_auc_{atlas}_graph-{graph}.xlsx'))
 
-#%% Graph Nodal Metrics Estimation 
-
-atlas = 'SCH100'
-norm = False
-
-# For Cosmonauts
+#%% Graph Nodal Metrics Estimation
 
 df = pd.DataFrame([])
+graph='pos'
 
-for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5]:
+thresholds = [
+    0.25,
+    0.275,
+    0.3,
+    0.325,
+    0.35,
+    0.375,
+    0.4,
+    0.425,
+    0.45,
+    0.475,
+    0.5, 
+    0.525, 
+    0.55, 
+    0.575, 
+    0.6, 
+    0.625, 
+    0.65, 
+    0.675, 
+    0.7, 
+    0.725, 
+    0.75, 
+    0.775, 
+    0.8, 
+]
+for threshold in thresholds:
     print(f'Cosmonauts: th = {threshold}')
     for sub in subjects:
         if sub.startswith('sub-cosmonaut'):           
@@ -213,16 +261,16 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
                 flight = ses.split('-')[1][0:2]
                 tp = ses.split('-')[1][2:]
 
-                if norm:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
-                        delimiter=','
-                    )
-                else:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}_nonorm.csv'), 
-                        delimiter=','
-                    )
+                adj_matrix = loadmat(
+                    op.join(data_dir, sub, ses, f'FC_{atlas}.mat')
+                )['FC']
+                np.fill_diagonal(adj_matrix, 0)
+
+                if graph=='pos':
+                    adj_matrix[adj_matrix < 0] = 0
+                elif graph=='absolute':
+                    adj_matrix = np.abs(adj_matrix)
+
                 # Keep top X% of weights
                 flat = adj_matrix[np.triu_indices_from(adj_matrix, k=1)]
                 thresh_val = np.percentile(flat, 100 - threshold * 100)
@@ -254,9 +302,10 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
 
                     df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Cosmonauts_{atlas}_norm-{norm}.xlsx'))
+df.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Cosmonauts_{atlas}_graph-{graph}.xlsx'))
 
 # AUC calculation for Cosmonauts
+
 metrics = [
     'clustering',
     'betweenness',
@@ -283,28 +332,27 @@ for subject in np.unique(df.subject):
                         dftmp['auc'] = [auc_val]
                         df_auc = pd.concat((df_auc, dftmp), ignore_index=True)          
 
-df_auc.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Cosmonauts_auc_{atlas}_norm-{norm}.xlsx'))
+df_auc.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Cosmonauts_auc_{atlas}_graph-{graph}.xlsx'))
 
 # For Controls
 
 df = pd.DataFrame([])
-for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275, 0.3, 0.325, 0.35, 0.375, 0.4, 0.425, 0.45, 0.475, 0.5]:
+for threshold in thresholds:
     print(f'Controls: th = {threshold}')
     for sub in subjects:
         if sub.startswith('sub-control'):
             for ses in sessions[sub]:
                 tp = ses.split('-')[1]
 
-                if norm:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}.csv'), 
-                        delimiter=','
-                    )
-                else:
-                    adj_matrix = np.loadtxt(
-                        op.join(data_dir, sub, ses, f'SC_{atlas}_nonorm.csv'), 
-                        delimiter=','
-                    )
+                adj_matrix = loadmat(
+                    op.join(data_dir, sub, ses, f'FC_{atlas}.mat')
+                )['FC']
+                np.fill_diagonal(adj_matrix, 0)
+
+                if graph=='pos':
+                    adj_matrix[adj_matrix < 0] = 0
+                elif graph=='absolute':
+                    adj_matrix = np.abs(adj_matrix)
 
                 # Keep top X% of weights
                 flat = adj_matrix[np.triu_indices_from(adj_matrix, k=1)]
@@ -336,7 +384,7 @@ for threshold in [0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225, 0.25, 0.275,
 
                     df = pd.concat((df, dftmp), ignore_index=True)
 
-df.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Controls_{atlas}_norm-{norm}.xlsx'))
+df.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Controls_{atlas}_graph-{graph}.xlsx'))
 
 # AUC calculation for Controls
 metrics = [
@@ -363,4 +411,4 @@ for subject in np.unique(df.subject):
                     dftmp['auc'] = [auc_val]
                     df_auc = pd.concat((df_auc, dftmp), ignore_index=True)          
 
-df_auc.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Controls_auc_{atlas}_norm-{norm}.xlsx'))
+df_auc.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Controls_auc_{atlas}_graph-{graph}.xlsx'))

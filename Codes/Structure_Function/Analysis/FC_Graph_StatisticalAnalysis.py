@@ -21,8 +21,8 @@ sessions = {sub:[ses for ses in sessions[sub] if ses.startswith('ses')] for sub 
 
 #%% Global Metrics Statistical Analysis Type 1: Cosmonauts (Post vs Pre) using Linear Mixed Models
 
-atlas = 'SCH100' # SCH100, SCH400, AAL
-norm = False
+atlas = 'SCH100'
+graph = 'pos'
 
 if atlas=='SCH100':
     R = 100 
@@ -31,7 +31,7 @@ elif atlas=='SCH400':
 elif atlas=='AAL':
     R = 170
 
-df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Cosmonauts_auc_{atlas}_norm-{norm}.xlsx'))
+df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Cosmonauts_auc_{atlas}_graph-{graph}.xlsx'))
 
 df_cosm_filt = df_cosm
 df_cosm_filt = df_cosm_filt[df_cosm_filt.flight=='f1']
@@ -66,8 +66,8 @@ df_results
 
 #%% Global Metrics Statistical Analysis Type 2: Controls (Post vs Pre) using Linear Mixed Models
 
-atlas = 'SCH100' # SCH100, SCH400, AAL
-norm = False
+atlas = 'SCH100'
+graph = 'pos'
 
 if atlas=='SCH100':
     R = 100 
@@ -76,7 +76,7 @@ elif atlas=='SCH400':
 elif atlas=='AAL':
     R = 170
 
-df_ctrl = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Controls_auc_{atlas}_norm-{norm}.xlsx'))
+df_ctrl = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Controls_auc_{atlas}_graph-{graph}.xlsx'))
 
 df_ctrl_filt = df_ctrl
 df_ctrl_filt = df_ctrl_filt[(df_ctrl_filt.time==1) | (df_ctrl_filt.time==2)]
@@ -84,7 +84,7 @@ df_ctrl_filt = df_ctrl_filt.reset_index()
 df_ctrl_filt = df_ctrl_filt.drop(axis='columns', labels=['index'])
 df_ctrl_filt['time'] = pd.Categorical(df_ctrl_filt['time'], categories=[1, 2])
 
-metric = 'global_efficiency' # Possible metrics: 
+metric = 'modularity' # Possible metrics: 
                              # 'global_efficiency'
                              # 'char_path_length'
                              # 'density'
@@ -110,18 +110,18 @@ df_results
 
 #%% Global Metrics Statistical Analysis Type 3: Cosmonauts (Post - Pre) vs Controls (Post - Pre) using Linear Mixed Models
 
-atlas = 'SCH100' # SCH100, SCH400, AAL
-norm = False
+atlas = 'SCH100'
+graph = 'pos'
 
 if atlas=='SCH100':
     R = 100 
-elif atlas=='SCH400':
+elif atlas=='SCH400':   
     R = 400 
 elif atlas=='AAL':
     R = 170
 
-df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Cosmonauts_auc_{atlas}_norm-{norm}.xlsx'))
-df_ctrl = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_global_Controls_auc_{atlas}_norm-{norm}.xlsx'))
+df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Cosmonauts_auc_{atlas}_graph-{graph}.xlsx'))
+df_ctrl = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_global_Controls_auc_{atlas}_graph-{graph}.xlsx'))
 df_cosm['group'] = 'cosmonaut'
 df_ctrl['group'] = 'control'
 df_ctrl.loc[(df_ctrl['time'] == 1), 'time'] = 'pre2'
@@ -131,7 +131,7 @@ df = pd.concat((df_cosm, df_ctrl), ignore_index=True)
 df = df[(df['flight'] == 'f1') & (df['time'].isin(['pre2', 'post']))].copy()
 df['time'] = pd.Categorical(df['time'], categories=['pre2', 'post'])
 
-metric = 'density' # Possible metrics: 
+metric = 'modularity' # Possible metrics: 
                              # 'global_efficiency'
                              # 'char_path_length'
                              # 'density'
@@ -171,9 +171,9 @@ df_results
 
 atlas = 'SCH100'
 R = 100
-norm = False
+graph = 'pos'
 
-df = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Cosmonauts_auc_{atlas}_norm-{norm}.xlsx'))
+df = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Cosmonauts_auc_{atlas}_graph-{graph}.xlsx'))
 df = df[df.flight=='f1']
 df = df[(df.time=='pre2') | (df.time=='post')]
 df = df.reset_index()
@@ -219,15 +219,15 @@ for metric in metrics:
     df_final = pd.concat((df_final, df_results), ignore_index=True)
 
 
-df_final.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Statistics_Cosmomnauts_nodalAUC_norm-{norm}.xlsx'), index=False)
+df_final.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Statistics_Cosmomnauts_nodalAUC_graph-{graph}.xlsx'), index=False)
 
 #%% Nodal Metrics Statistical Analysis Type 2: Controls (Post vs Pre) using Linear Mixed Models
 
 atlas = 'SCH100'
 R = 100
-norm = False
+graph = 'pos'
 
-df = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Controls_auc_{atlas}_norm-{norm}.xlsx'))
+df = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Controls_auc_{atlas}_graph-{graph}.xlsx'))
 df = df[(df.time==1) | (df.time==2)]
 df = df.reset_index()
 df = df.drop(axis='columns', labels=['index'])
@@ -271,15 +271,16 @@ for metric in metrics:
 
     df_final = pd.concat((df_final, df_results), ignore_index=True)
 
-
-df_final.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Statistics_Controls_nodalAUC_norm-{norm}.xlsx'), index=False)
+df_final.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Statistics_Controls_nodalAUC_graph-{graph}.xlsx'), index=False)
 
 #%% Nodal Metrics Statistical Analysis Type 3: Cosmonauts (Post - Pre) vs Controls (Post - Pre) using Linear Mixed Models
+
 atlas = 'SCH100'
 R = 100
-norm = False
-df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Cosmonauts_auc_{atlas}_norm-{norm}.xlsx'))
-df_ctrl = pd.read_excel(op.join(res_dir, f'{atlas}/SC/Graph/Graph_metrics_nodal_Controls_auc_{atlas}_norm-{norm}.xlsx'))
+graph = 'pos'
+
+df_cosm = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Cosmonauts_auc_{atlas}_graph-{graph}.xlsx'))
+df_ctrl = pd.read_excel(op.join(res_dir, f'{atlas}/FC/Graph/Graph_metrics_nodal_Controls_auc_{atlas}_graph-{graph}.xlsx'))
 df_cosm['group'] = 'cosmonaut'
 df_ctrl['group'] = 'control'
 df_ctrl.loc[(df_ctrl['time'] == 1), 'time'] = 'pre2'
@@ -294,6 +295,7 @@ metrics = [
     'betweenness',
     'closeness'
 ]
+
 df_final = pd.DataFrame([])
 for metric in metrics:
     results = []
@@ -338,4 +340,4 @@ for metric in metrics:
 
     df_final = pd.concat((df_final, df_results), ignore_index=True)
 
-df_final.to_excel(op.join(res_dir, f'{atlas}/SC/Graph/Statistics_Cosmonauts_vs_Controls_nodalAUC_norm-{norm}.xlsx'), index=False)
+df_final.to_excel(op.join(res_dir, f'{atlas}/FC/Graph/Statistics_Cosmonauts_vs_Controls_nodalAUC_graph-{graph}.xlsx'), index=False)
