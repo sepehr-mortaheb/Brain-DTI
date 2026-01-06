@@ -7,6 +7,11 @@ import os.path as op
 import statsmodels.formula.api as smf
 from statsmodels.stats.multitest import multipletests
 
+import warnings
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore")
+
 #%% Parameters and directories initialization 
 data_dir = '/Users/sepehrleia/Library/CloudStorage/GoogleDrive-sepmori2023@gmail.com/My Drive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/Analysis/data_ts_sc/ROS'
 res_dir = '/Users/sepehrleia/Library/CloudStorage/GoogleDrive-sepmori2023@gmail.com/My Drive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/Analysis/results'
@@ -43,8 +48,6 @@ df_cosm_filt['time'] = pd.Categorical(df_cosm_filt['time'], categories=['pre2', 
 metric = 'modularity' # Possible metrics: 
                              # 'global_efficiency'
                              # 'char_path_length'
-                             # 'density'
-                             # 'transitivity'
                              # 'modularity
 
 
@@ -84,11 +87,9 @@ df_ctrl_filt = df_ctrl_filt.reset_index()
 df_ctrl_filt = df_ctrl_filt.drop(axis='columns', labels=['index'])
 df_ctrl_filt['time'] = pd.Categorical(df_ctrl_filt['time'], categories=[1, 2])
 
-metric = 'modularity' # Possible metrics: 
+metric = 'char_path_length' # Possible metrics: 
                              # 'global_efficiency'
                              # 'char_path_length'
-                             # 'density'
-                             # 'transitivity'
                              # 'modularity
 
 
@@ -134,8 +135,6 @@ df['time'] = pd.Categorical(df['time'], categories=['pre2', 'post'])
 metric = 'modularity' # Possible metrics: 
                              # 'global_efficiency'
                              # 'char_path_length'
-                             # 'density'
-                             # 'transitivity'
                              # 'modularity'
 
 

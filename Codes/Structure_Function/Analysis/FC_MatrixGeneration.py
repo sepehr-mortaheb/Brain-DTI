@@ -5,13 +5,10 @@ import numpy as np
 from scipy.io import loadmat, savemat
 from nilearn.connectome import ConnectivityMeasure
 import os
-import seaborn as sns
-import matplotlib.pylab as plt 
-from scipy.stats import zscore
 
 #%% Parameters and Directories Initialization
 
-data_dir = '/Users/sepehrmortaheb/MyDrive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/Analysis/data_ts_sc/ROS'
+data_dir = '/Users/sepehrleia/Library/CloudStorage/GoogleDrive-sepmori2023@gmail.com/My Drive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/Analysis/data_ts_sc/ROS'
 
 subjects = np.sort(os.listdir(op.join(data_dir)))
 # to remove .DS files in mac
