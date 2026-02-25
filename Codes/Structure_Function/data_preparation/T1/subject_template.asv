@@ -1,0 +1,120 @@
+clc 
+clear 
+
+%% Initialization 
+
+% --- Set the following directories --- 
+
+% Directory of the BIDS formated data:
+bids_dir = '/Users/sepehrleia/Library/CloudStorage/GoogleDrive-sepmori2023@gmail.com/My Drive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/data/raw_bids';
+% Save directory of the fMRI processing:
+save_dir = '/Users/sepehrleia/Library/CloudStorage/GoogleDrive-sepmori2023@gmail.com/My Drive/Academic/LEIA/Projects/BRAIN-DTI/Cosmonauts_StructFunc/data/preprocessed';
+
+%% 
+% --- Set the Participants and Sessions Information --- 
+
+subjectDirs = dir(fullfile(bids_dir, 'sub-*'));
+Subjects = struct();
+for i=1:length(subjectDirs)
+    SubjName = subjectDirs(i).name;
+    SubjPath = fullfile(bids_dir, SubjName);
+    
+    % Get session folders
+    sessionDirs = dir(fullfile(SubjPath, 'ses-*'));
+    validSessions = {};
+    for j=1:length(sessionDirs)
+        sessName = sessionDirs(j).name;
+        validSessions{end+1} = sessName;
+    end
+    Subjects(i).id = SubjName;
+    Subjects(i).path = SubjPath;
+    Subjects(i).sessions = validSessions; 
+end
+
+%% 
+
+for i=1:length(Subjects)
+    subj = Subjects(i).id; 
+    subj_path = Subjects(i).path;
+    n_sessions = numel(Subjects(i).sessions); 
+    
+    anat_files = cell(n_sessions, 1);
+    for s = 1: n_sessions
+        ses = Subjects(i).sessions{s};
+        anat_files{s} = fullfile(subj_path, ses, 'anat', strcat(subj, '_', ses, '_acq-ge_run-fmri_T1w.nii'));
+        if ~exist(anat_files{s}, 'file')
+            anat_files{s} = fullfile(subj_path, ses, 'anat', strcat(subj, '_', ses, '_acq-ge_run-dti_T1w.nii'));
+        end
+    end
+    
+    if n_sessions == 2
+        times = [0 0.5];
+    else 
+        times = [0 0.5 1];
+    end
+    
+            
+    matlabbatch = {};
+
+    matlabbatch{1}.spm.tools.longit.series.vols = anat_files;
+    matlabbatch{1}.spm.tools.longit.series.times = times;
+    matlabbatch{1}.spm.tools.longit.series.noise = NaN;
+    matlabbatch{1}.spm.tools.longit.series.wparam = [0 0 100 25 100];
+    matlabbatch{1}.spm.tools.longit.series.bparam = 1000000;
+    matlabbatch{1}.spm.tools.longit.series.write_avg = 1;
+    matlabbatch{1}.spm.tools.longit.series.write_jac = 0;
+    matlabbatch{1}.spm.tools.longit.series.write_div = 0;
+    matlabbatch{1}.spm.tools.longit.series.write_def = 0;
+    
+    matlabbatch{2}.spm.spatial.preproc.channel.vols(1) = cfg_dep('Serial Longitudinal Registration: Midpoint Average', substruct('.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','avg', '()',{':'}));
+    matlabbatch{2}.spm.spatial.preproc.channel.biasreg = 0.001;
+    matlabbatch{2}.spm.spatial.preproc.channel.biasfwhm = 60;
+    matlabbatch{2}.spm.spatial.preproc.channel.write = [0 1];
+    matlabbatch{2}.spm.spatial.preproc.tissue(1).tpm = {'/Users/sepehrleia/softwares/spm12/tpm/TPM.nii,1'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(1).ngaus = 1;
+    matlabbatch{2}.spm.spatial.preproc.tissue(1).native = [1 0];
+    matlabbatch{2}.spm.spatial.preproc.tissue(1).warped = [0 0];
+    matlabbatch{2}.spm.spatial.preproc.tissue(2).tpm = {'/Users/sepehrleia/softwares/spm12/tpm/TPM.nii,2'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(2).ngaus = 1;
+    matlabbatch{2}.spm.spatial.preproc.tissue(2).native = [1 0];
+    matlabbatch{2}.spm.spatial.preproc.tissue(2).warped = [0 0];
+    matlabbatch{2}.spm.spatial.preproc.tissue(3).tpm = {'/Users/sepehrleia/softwares/spm12/tpm/TPM.nii,3'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(3).ngaus = 2;
+    matlabbatch{2}.spm.spatial.preproc.tissue(3).native = [1 0];
+    matlabbatch{2}.spm.spatial.preproc.tissue(3).warped = [0 0];
+    matlabbatch{2}.spm.spatial.preproc.tissue(4).tpm = {'/Users/sepehrleia/softwares/spm12/tpm/TPM.nii,4'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(4).ngaus = 3;
+    matlabbatch{2}.spm.spatial.preproc.tissue(4).native = [0 0];
+    matlabbatch{2}.spm.spatial.preproc.tissue(4).warped = [0 0];
+    matlabbatch{2}.spm.spatial.preproc.tissue(5).tpm = {'/Users/sepehrleia/softwares/spm12/tpm/TPM.nii,5'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(5).ngaus = 4;
+    matlabbatch{2}.spm.spatial.preproc.tissue(5).native = [0 0];
+    matlabbatch{2}.spm.spatial.preproc.tissue(5).warped = [0 0];
+    matlabbatch{2}.spm.spatial.preproc.tissue(6).tpm = {'/Users/sepehrleia/softwares/spm12/tpm/TPM.nii,6'};
+    matlabbatch{2}.spm.spatial.preproc.tissue(6).ngaus = 2;
+    matlabbatch{2}.spm.spatial.preproc.tissue(6).native = [0 0];
+    matlabbatch{2}.spm.spatial.preproc.tissue(6).warped = [0 0];
+    matlabbatch{2}.spm.spatial.preproc.warp.mrf = 1;
+    matlabbatch{2}.spm.spatial.preproc.warp.cleanup = 1;
+    matlabbatch{2}.spm.spatial.preproc.warp.reg = [0 0.001 0.5 0.05 0.2];
+    matlabbatch{2}.spm.spatial.preproc.warp.affreg = 'mni';
+    matlabbatch{2}.spm.spatial.preproc.warp.fwhm = 0;
+    matlabbatch{2}.spm.spatial.preproc.warp.samp = 3;
+    matlabbatch{2}.spm.spatial.preproc.warp.write = [1 1];
+    matlabbatch{2}.spm.spatial.preproc.warp.vox = NaN;
+    matlabbatch{2}.spm.spatial.preproc.warp.bb = [NaN NaN NaN
+                                                  NaN NaN NaN];
+    
+    spm_jobman('run', matlabbatch)
+    
+    SaveDir = fullfile(save_dir, subj_name, 'func');
+    if ~exist(SaveDir, 'dir')
+        mkdir(SaveDir);
+    end
+    datapath = fullfile(subj_path, Subjects(i).sessions{1}, 'anat');
+    movefile(fullfile(datapath, 'avg_*.*'), SaveDir);
+    
+    clear matlabbatch;
+    x=2;
+    
+end
